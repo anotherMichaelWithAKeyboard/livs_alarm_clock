@@ -2,33 +2,16 @@
 
 ## Getting Started
 
-### Using Nix Flakes (Recommended)
+### Local Development (Linux/Mac/Windows)
 ```bash
-# Enable flakes in your nix configuration if not already enabled
-# Add to ~/.config/nix/nix.conf or /etc/nix/nix.conf:
-# experimental-features = nix-command flakes
-
-# Enter development environment
-nix develop
+# Install Python dependencies
+pip3 install -r requirements.txt
 
 # Run the application
-python src/main.py
+python3 src/main.py
 ```
 
-### Using shell.nix (Legacy)
-```bash
-nix-shell
-python src/main.py
-```
-
-### Without Nix
-```bash
-# Install dependencies
-pip install pygame requests pytz
-
-# Run the application
-python src/main.py
-```
+The application will open in a window simulating the touchscreen display.
 
 ## Project Structure
 
@@ -46,10 +29,10 @@ python src/main.py
 - `settings.json` - Application settings (display, dim mode, etc.)
 - `alarms.json` - Saved alarms
 
-### NixOS Configuration (`nixos/`)
-- `configuration.nix` - Main NixOS configuration
-- `hardware-configuration.nix` - Hardware-specific settings
-- `modules/alarm-clock.nix` - Custom systemd service
+### Deployment Files
+- `requirements.txt` - Python package dependencies
+- `install.sh` - Automated installation script for Raspberry Pi OS
+- `alarm-clock.service` - Systemd service configuration
 
 ## Testing on Your Laptop
 
@@ -64,23 +47,71 @@ The application is designed to run in a simulated environment. The default windo
 
 ### Prerequisites
 1. Raspberry Pi 5 with SD card
-2. NixOS installed on the Pi
+2. Raspberry Pi OS (64-bit recommended) installed
 3. Network connectivity to the Pi
+4. SSH access to the Pi
 
-### Build and Deploy
+### Automated Deployment (Recommended)
 ```bash
-# Build the configuration
-nix build .#nixosConfigurations.alarm-clock.config.system.build.toplevel
+# On your Raspberry Pi, clone the repository
+cd ~
+git clone <repository-url> livs_alarm_clock
+cd livs_alarm_clock
 
-# Copy to Pi and switch (replace with your Pi's address)
-nixos-rebuild switch --flake .#alarm-clock --target-host liv@alarm-clock.local --use-remote-sudo
+# Run the installation script
+sudo ./install.sh
+
+# Reboot to enable auto-login and auto-start
+sudo reboot
 ```
 
-### Initial Setup on Pi
-1. Flash NixOS ARM image to SD card
-2. Boot the Pi and get network access
-3. Copy your SSH key: `ssh-copy-id liv@alarm-clock.local`
-4. Deploy the configuration
+The installation script will:
+- Install all system dependencies (Python, pygame, PulseAudio, etc.)
+- Set up Python packages from requirements.txt
+- Configure auto-login for the GUI
+- Install and enable the systemd service
+- Configure timezone to Australia/Melbourne
+- Set up audio and touchscreen support
+
+### Manual Deployment
+```bash
+# Install system packages
+sudo apt-get update
+sudo apt-get install -y python3 python3-pip python3-pygame pulseaudio lightdm openssh-server
+
+# Install Python dependencies
+pip3 install -r requirements.txt
+
+# Configure auto-login (edit /etc/lightdm/lightdm.conf.d/50-autologin.conf)
+# Add:
+# [Seat:*]
+# autologin-user=<your-username>
+# autologin-user-timeout=0
+
+# Install systemd service
+sudo cp alarm-clock.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable alarm-clock.service
+sudo systemctl start alarm-clock.service
+```
+
+### Managing the Deployed Service
+```bash
+# Check service status
+systemctl status alarm-clock.service
+
+# View live logs
+journalctl -u alarm-clock.service -f
+
+# Restart the service
+sudo systemctl restart alarm-clock.service
+
+# Stop the service
+sudo systemctl stop alarm-clock.service
+
+# Disable auto-start
+sudo systemctl disable alarm-clock.service
+```
 
 ## Adding Features
 

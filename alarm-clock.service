@@ -1,0 +1,18 @@
+[Unit]
+Description=Liv's Custom Alarm Clock Application
+After=network.target graphical.target
+Wants=graphical.target
+
+[Service]
+Type=simple
+User=liv
+Group=liv
+WorkingDirectory=/home/liv/livs_alarm_clock
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/liv/.Xauthority"
+ExecStart=/usr/bin/python3 /home/liv/livs_alarm_clock/src/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

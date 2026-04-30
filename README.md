@@ -1,14 +1,11 @@
 # Liv's Custom Alarm Clock
 
-A custom alarm clock running on Raspberry Pi 5 with NixOS, featuring a touchscreen interface, weather forecasting, and customizable alarms.
+A custom alarm clock running on Raspberry Pi 5 with Raspberry Pi OS, featuring a touchscreen interface, weather forecasting, and customizable alarms.
 
 ## Project Structure
 
 ```
 .
-├── nixos/              # NixOS configuration
-│   ├── modules/        # Custom NixOS modules
-│   └── hardware/       # Hardware-specific configs
 ├── src/                # Application source code
 │   ├── ui/            # User interface components
 │   ├── services/      # Background services (alarm, weather API)
@@ -17,7 +14,10 @@ A custom alarm clock running on Raspberry Pi 5 with NixOS, featuring a touchscre
 │   ├── sounds/        # Alarm sound files
 │   └── fonts/         # Custom fonts
 ├── config/            # Application configuration
-└── tests/             # Test files
+├── tests/             # Test files
+├── requirements.txt   # Python dependencies
+├── install.sh         # Installation script for Raspberry Pi OS
+└── alarm-clock.service # Systemd service file
 ```
 
 ## Features
@@ -49,29 +49,68 @@ See [FEATURES.md](FEATURES.md), [VISUAL_FEATURES.md](VISUAL_FEATURES.md), and [R
 ## Development
 
 ### Prerequisites
-- Nix package manager with flakes enabled
-- (For deployment) Raspberry Pi 5 with touchscreen
+- Python 3.x
+- Raspberry Pi 5 with touchscreen (for deployment)
+- Raspberry Pi OS (64-bit recommended)
 
 ### Local Development
 ```bash
-# Enter development shell
-nix develop
+# Install Python dependencies
+pip3 install -r requirements.txt
 
-# Run application locally (simulated)
-python src/main.py
+# Run application locally
+python3 src/main.py
 
 # Test individual components
-python examples/test_split_flap.py  # Test split-flap display
-python examples/test_pixel_border.py  # Test pixel border
+python3 examples/test_split_flap.py  # Test split-flap display
+python3 examples/test_pixel_border.py  # Test pixel border
 ```
 
 ### Deployment to Raspberry Pi
-```bash
-# Build NixOS configuration
-nixos-rebuild build --flake .#alarm-clock
 
-# Deploy to Raspberry Pi
-nixos-rebuild switch --flake .#alarm-clock --target-host pi@alarm-clock.local
+#### Option 1: Automated Installation (Recommended)
+```bash
+# Clone the repository on your Raspberry Pi
+cd ~
+git clone <repository-url> livs_alarm_clock
+cd livs_alarm_clock
+
+# Run the installation script
+sudo ./install.sh
+
+# Reboot to enable auto-login and auto-start
+sudo reboot
+```
+
+#### Option 2: Manual Installation
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install python3 python3-pip python3-pygame pulseaudio lightdm
+
+# Install Python dependencies
+pip3 install -r requirements.txt
+
+# Install systemd service
+sudo cp alarm-clock.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable alarm-clock.service
+sudo systemctl start alarm-clock.service
+```
+
+### Managing the Service
+```bash
+# Check service status
+systemctl status alarm-clock.service
+
+# View logs
+journalctl -u alarm-clock.service -f
+
+# Restart the service
+sudo systemctl restart alarm-clock.service
+
+# Stop the service
+sudo systemctl stop alarm-clock.service
 ```
 
 ## TODO

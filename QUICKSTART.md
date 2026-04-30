@@ -2,22 +2,12 @@
 
 ## Test the Application Locally
 
-### Option 1: Using Nix (Recommended)
-```bash
-# Enter development environment
-nix develop
-
-# Run the application
-python src/main.py
-```
-
-### Option 2: Using Python directly
 ```bash
 # Install dependencies
-pip install pygame requests pytz
+pip3 install -r requirements.txt
 
 # Run the application
-python src/main.py
+python3 src/main.py
 ```
 
 You should see a window with a digital clock showing Melbourne time. Press ESC to exit.
@@ -25,7 +15,7 @@ You should see a window with a digital clock showing Melbourne time. Press ESC t
 ## Next Steps
 
 1. **Test the basic clock display**
-   - Run `python src/main.py`
+   - Run `python3 src/main.py`
    - Verify the time shows correctly in 12-hour format
    - Check that the date displays properly
 
@@ -37,10 +27,10 @@ You should see a window with a digital clock showing Melbourne time. Press ESC t
    - Edit `config/settings.json` to adjust display and dim mode settings
    - Add weather API key when ready
 
-4. **Prepare for Raspberry Pi deployment**
-   - Review `nixos/configuration.nix`
-   - Adjust hardware settings as needed
-   - See `DEVELOPMENT.md` for deployment instructions
+4. **Deploy to Raspberry Pi**
+   - Copy project to your Raspberry Pi 5
+   - Run the installation script: `sudo ./install.sh`
+   - See README.md for detailed deployment instructions
 
 ## Current Status
 
@@ -64,7 +54,7 @@ You should see a window with a digital clock showing Melbourne time. Press ESC t
 ## Troubleshooting
 
 ### "ModuleNotFoundError: No module named 'pygame'"
-Install pygame: `pip install pygame` or use `nix develop`
+Install dependencies: `pip3 install -r requirements.txt`
 
 ### Display is too small/large
 Adjust `width` and `height` in `config/settings.json`
@@ -72,7 +62,10 @@ Adjust `width` and `height` in `config/settings.json`
 ### Wrong timezone
 Change `timezone` in `config/settings.json` to your preferred timezone
 
+### Service not starting after installation
+Check service logs: `journalctl -u alarm-clock.service -f`
+
 ## Resources
-- [NixOS Manual](https://nixos.org/manual/nixos/stable/)
+- [Raspberry Pi OS Documentation](https://www.raspberrypi.com/documentation/computers/os.html)
 - [Pygame Documentation](https://www.pygame.org/docs/)
 - [Raspberry Pi 5 Specs](https://www.raspberrypi.com/products/raspberry-pi-5/)
