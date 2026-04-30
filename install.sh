@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_DIR="$HOME/livs_alarm_clock"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="alarm-clock.service"
 USERNAME="${SUDO_USER:-$USER}"
 
@@ -66,8 +66,15 @@ apt-get install -y \
 
 # Install Python dependencies
 echo -e "${GREEN}[3/8] Installing Python dependencies...${NC}"
+
+# First, try to install via apt (preferred for Raspberry Pi OS)
+apt-get install -y python3-requests python3-tz 2>/dev/null || true
+
+# Then install any remaining packages via pip with --break-system-packages
+# This is safe for a dedicated device running a single application
 if [ -f "$PROJECT_DIR/requirements.txt" ]; then
-    sudo -u $USERNAME pip3 install --user -r "$PROJECT_DIR/requirements.txt"
+    sudo -u $USERNAME pip3 install --user --break-system-packages -r "$PROJECT_DIR/requirements.txt" 2>/dev/null || \
+    echo -e "${YELLOW}Note: Using system-installed Python packages${NC}"
 else
     echo -e "${YELLOW}Warning: requirements.txt not found, skipping Python packages${NC}"
 fi
@@ -100,8 +107,8 @@ EOF
 # Install systemd service
 echo -e "${GREEN}[7/8] Installing systemd service...${NC}"
 if [ -f "$PROJECT_DIR/$SERVICE_NAME" ]; then
-    # Update the service file with correct username
-    sed "s/User=liv/User=$USERNAME/g; s/Group=liv/Group=$USERNAME/g; s|/home/liv/|/home/$USERNAME/|g" \
+    # Update the service file with correct username and project directory
+    sed "s/User=liv/User=$USERNAME/g; s/Group=liv/Group=$USERNAME/g; s|/home/liv/livs_alarm_clock|$PROJECT_DIR|g" \
         "$PROJECT_DIR/$SERVICE_NAME" > /etc/systemd/system/$SERVICE_NAME
 
     systemctl daemon-reload
@@ -120,6 +127,9 @@ echo ""
 echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}  Installation Complete!${NC}"
 echo -e "${GREEN}================================================${NC}"
+echo ""
+echo -e "Project directory: ${YELLOW}$PROJECT_DIR${NC}"
+echo -e "Installing for user: ${YELLOW}$USERNAME${NC}"
 echo ""
 echo -e "Next steps:"
 echo -e "  1. Configure your settings in: ${YELLOW}$PROJECT_DIR/config/settings.json${NC}"
