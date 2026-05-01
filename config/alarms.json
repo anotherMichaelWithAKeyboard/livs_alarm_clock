@@ -1,0 +1,11 @@
+[
+  {
+    "hour": 7,
+    "minute": 50,
+    "sound": "default.mp3",
+    "enabled": true,
+    "skip_weekends": false,
+    "skip_holidays": false,
+    "weekdays_only": null
+  }
+]

@@ -34,10 +34,13 @@ class SplitFlapDigit:
 
     def set_value(self, value: str):
         """Set target value and trigger flip animation"""
-        if value != self.current_value:
-            self.target_value = value
-            self.is_flipping = True
-            self.flip_progress = 0.0
+        if value == self.current_value:
+            return
+        if self.is_flipping and self.target_value == value:
+            return  # already animating toward this value
+        self.target_value = value
+        self.is_flipping = True
+        self.flip_progress = 0.0
 
     def update(self):
         """Update animation state"""

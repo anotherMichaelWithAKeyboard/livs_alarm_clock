@@ -1,0 +1,53 @@
+{
+  "destinations": [
+    {
+      "name": "Work - Collins St",
+      "address": "123 Collins St",
+      "count": 2
+    },
+    {
+      "name": "Mika's",
+      "address": "Mika's",
+      "count": 1
+    },
+    {
+      "name": "6 Donne Street, Coburg, VIC 3058",
+      "address": "6 Donne Street, Coburg, VIC 3058",
+      "count": 0
+    }
+  ],
+  "starting_points": [
+    {
+      "name": "56C Gadd Street, Northcote, VIC 3070",
+      "address": "56C Gadd Street, Northcote, VIC 3070"
+    }
+  ],
+  "fluffer_activities": [
+    {
+      "name": "Wash hair",
+      "minutes": 40
+    },
+    {
+      "name": "Breakfast",
+      "minutes": 10
+    },
+    {
+      "name": "Get dressed",
+      "minutes": 10
+    }
+  ],
+  "plan": {
+    "destination": "Mika's",
+    "start_location": "Home",
+    "arrival_time": "08:00",
+    "transport_mode": "public_transport",
+    "journey_minutes": 0,
+    "selected_departure": null,
+    "fluffer_selected": [
+      "Get dressed"
+    ],
+    "snooze_count": 0,
+    "snooze_duration": 9,
+    "alarm_time": "07:50"
+  }
+}

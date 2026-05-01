@@ -108,7 +108,7 @@ EOF
 echo -e "${GREEN}[7/8] Installing systemd service...${NC}"
 if [ -f "$PROJECT_DIR/$SERVICE_NAME" ]; then
     # Update the service file with correct username and project directory
-    sed "s/User=liv/User=$USERNAME/g; s/Group=liv/Group=$USERNAME/g; s|/home/liv/livs_alarm_clock|$PROJECT_DIR|g" \
+    sed "s/User=liv/User=$USERNAME/g; s/Group=liv/Group=$USERNAME/g; s|/home/liv/livs_alarm_clock|$PROJECT_DIR|g; s|/home/liv/.Xauthority|/home/$USERNAME/.Xauthority|g" \
         "$PROJECT_DIR/$SERVICE_NAME" > /etc/systemd/system/$SERVICE_NAME
 
     systemctl daemon-reload

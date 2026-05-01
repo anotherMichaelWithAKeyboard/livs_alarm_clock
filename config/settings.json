@@ -1,0 +1,20 @@
+{
+  "display": {
+    "fullscreen": true,
+    "brightness": 100
+  },
+  "dimMode": {
+    "enabled": true,
+    "startTime": "22:00",
+    "endTime": "06:00",
+    "brightness": 20
+  },
+  "timezone": "Australia/Melbourne",
+  "photoFrame": {
+    "idleTimeout": 60
+  },
+  "ptv": {
+    "devId": "",
+    "apiKey": ""
+  }
+}

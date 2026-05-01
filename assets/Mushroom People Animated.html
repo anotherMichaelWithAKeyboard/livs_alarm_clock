@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mushroom People — Animated Seasonal v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Press Start 2P',monospace; background:#ede8d5; overflow-x:hidden; }
+
+    .page-header { background:#2a1604; padding:18px 40px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .page-header h1 { font-size:10px; color:#f0d090; flex:1; }
+    .page-header .sub { font-size:4.5px; color:#907050; letter-spacing:2px; }
+    #modeBtn { font-family:'Press Start 2P',monospace; font-size:6px; cursor:pointer; border:none; border-radius:3px; padding:8px 12px; background:#f0d090; color:#2a1604; transition:background .15s,color .15s; }
+    #modeBtn.active { background:#1a0e60; color:#a0e0ff; border:1px solid #4060c0; }
+
+    .season { padding:26px 40px 22px; border-bottom:3px solid rgba(0,0,0,.05); }
+    .season-spring  { background:#f2faf0; }
+    .season-summer  { background:#fef9e6; }
+    .season-autumn  { background:#fdf0de; }
+    .season-winter  { background:#eaf0fa; }
+    .season-special { background:#0e0620; }
+
+    .season-title { font-size:9px; margin-bottom:18px; display:flex; align-items:center; gap:12px; }
+    .season-spring  .season-title { color:#6a2880; }
+    .season-summer  .season-title { color:#6a3808; }
+    .season-autumn  .season-title { color:#6a2808; }
+    .season-winter  .season-title { color:#1a2870; }
+    .season-special .season-title { color:#d0a0ff; }
+    .season-title::after { content:''; flex:1; height:2px; border-radius:1px; opacity:.22; background:currentColor; }
+
+    .group { margin-bottom:22px; }
+    .group-label { font-size:4.5px; letter-spacing:3px; text-transform:uppercase; margin-bottom:13px; opacity:.4; }
+    .season-special .group-label { color:#a070e0; opacity:.6; }
+
+    .chars-row { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:flex-end; }
+    .flora-row  { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:flex-end; }
+
+    .char-card { display:flex; flex-direction:column; align-items:center; gap:5px; padding:10px 7px 7px; border-radius:3px; cursor:default; transition:background .12s; }
+    .season-spring  .char-card:hover { background:rgba(200,140,210,.18); }
+    .season-summer  .char-card:hover { background:rgba(240,195,50,.18); }
+    .season-autumn  .char-card:hover { background:rgba(220,110,40,.18); }
+    .season-winter  .char-card:hover { background:rgba(140,180,230,.2); }
+    .season-special .char-card:hover { background:rgba(160,80,255,.2); }
+
+    .char-name { font-size:3.8px; text-align:center; max-width:82px; line-height:1.9; opacity:.6; }
+    .season-special .char-name { color:#d0b0ff; opacity:.8; }
+    .char-class { font-size:3.2px; color:#a070d0; text-align:center; opacity:.7; margin-top:-3px; letter-spacing:1px; }
+
+    .expr-strip { display:flex; gap:3px; align-items:flex-end; margin-top:3px; }
+
+    .flora-card { display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 4px 4px; }
+    .flora-name { font-size:3.8px; text-align:center; max-width:62px; line-height:1.9; opacity:.5; }
+    .flora-wrap { display:inline-block; transform-origin:bottom center; }
+
+    @keyframes floraSwayAnim   { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-4deg)} 70%{transform:rotate(4deg)} }
+    @keyframes floraBopAnim    { 0%,100%{transform:translateY(0) rotate(0deg)} 40%{transform:translateY(-4px) rotate(2deg)} 60%{transform:translateY(-4px) rotate(-2deg)} }
+    @keyframes floraQuiverAnim { 0%,100%{transform:rotate(0deg) scaleY(1)} 25%{transform:rotate(-2deg) scaleY(1.03)} 75%{transform:rotate(2deg) scaleY(.98)} }
+
+    .flora-sway   { animation:floraSwayAnim   var(--fd,2.2s) ease-in-out var(--fdl,0s) infinite; }
+    .flora-bop    { animation:floraBopAnim     var(--fd,1.6s) ease-in-out var(--fdl,0s) infinite; }
+    .flora-quiver { animation:floraQuiverAnim  var(--fd,1.2s) ease-in-out var(--fdl,0s) infinite; }
+
+    @keyframes walkAnim { 0%{transform:translateX(0)} 25%{transform:translateX(18px)} 50%{transform:translateX(0)} 75%{transform:translateX(-18px)} 100%{transform:translateX(0)} }
+    @keyframes bobAnim  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    @keyframes wigAnim  { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(-6deg)} 75%{transform:rotate(6deg)} }
+    @keyframes floatAnim{ 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-7px) rotate(2deg)} }
+
+    .anim-wrap { display:block; }
+
+    body.mode-8bit .anim-wrap[data-anim="walk"] { animation-timing-function:steps(6)!important; }
+    body.mode-8bit .anim-wrap[data-anim="bob"]  { animation-timing-function:steps(3)!important; }
+    body.mode-8bit .anim-wrap[data-anim="wig"]  { animation-timing-function:steps(4)!important; }
+    body.mode-8bit .anim-wrap[data-anim="float"]{ animation-timing-function:steps(4)!important; }
+    body.mode-8bit .flora-sway,.mode-8bit .flora-bop,.mode-8bit .flora-quiver { animation-timing-function:steps(3); }
+
+    canvas { image-rendering:pixelated; image-rendering:crisp-edges; display:block; }
+  </style>
+</head>
+<body>
+<div class="page-header">
+  <h1>🍄 MUSHROOM PEOPLE</h1>
+  <div class="sub">ANIMATED SEASONAL v2 · PIXEL ART · MANY VARIETIES</div>
+  <button id="modeBtn" onclick="toggleMode()">⬛ 8-BIT MODE</button>
+</div>
+
+<div class="season season-spring">
+  <div class="season-title">🌸 Spring</div>
+  <div class="group"><div class="group-label">Mushroom Folk</div><div class="chars-row" id="sc"></div></div>
+  <div class="group"><div class="group-label">Flora</div><div class="flora-row" id="sf"></div></div>
+</div>
+<div class="season season-summer">
+  <div class="season-title">☀️ Summer</div>
+  <div class="group"><div class="group-label">Mushroom Folk</div><div class="chars-row" id="uc"></div></div>
+  <div class="group"><div class="group-label">Flora</div><div class="flora-row" id="uf"></div></div>
+</div>
+<div class="season season-autumn">
+  <div class="season-title">🍂 Autumn</div>
+  <div class="group"><div class="group-label">Mushroom Folk</div><div class="chars-row" id="ac"></div></div>
+  <div class="group"><div class="group-label">Flora</div><div class="flora-row" id="af"></div></div>
+</div>
+<div class="season season-winter">
+  <div class="season-title">❄️ Winter</div>
+  <div class="group"><div class="group-label">Mushroom Folk</div><div class="chars-row" id="wc"></div></div>
+  <div class="group"><div class="group-label">Flora</div><div class="flora-row" id="wf"></div></div>
+</div>
+<div class="season season-special">
+  <div class="season-title">👑 Royal Court &amp; Little Folk</div>
+  <div class="group"><div class="group-label">Royalty</div><div class="chars-row" id="royals"></div></div>
+  <div class="group"><div class="group-label">Baby Mushrooms</div><div class="chars-row" id="babies"></div></div>
+</div>
+
+<script>
+// ── RENDERER ─────────────────────────────────────────────────────────────
+function renderSprite(rows, pal, sc) {
+  const w = rows[0].length, h = rows.length;
+  const cv = document.createElement('canvas');
+  cv.width = w*sc; cv.height = h*sc;
+  const ctx = cv.getContext('2d');
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++) {
+    const c=rows[y][x]; if(c!=='.'&&pal[c]){ctx.fillStyle=pal[c];ctx.fillRect(x*sc,y*sc,sc,sc);}
+  }
+  return cv;
+}
+
+// ── PALETTE ───────────────────────────────────────────────────────────────
+const SKIN='#f2c07a',EYE='#1e0e04',MOUTH='#b05840',OUTL='#2a1604',WHITE='#f8f4e8',SHOE='#2a1604';
+const SG='#4a9030',SD='#2a6018';
+function cp(R,r,G,g){return{R,r,W:WHITE,S:SKIN,s:'#cc9050',e:EYE,m:MOUTH,G,g,B:OUTL,X:SHOE,l:EYE,o:'#c05840',O:'#903020',k:'#201008',Y:'#f8d820',C:'#f8d020',c:'#6a3a08'};}
+
+// ── CAP TYPES (all 8 wide) ────────────────────────────────────────────────
+const DOT2='RRWRRWRR', DOT3='RWRWRWRR';
+function getCapRows(type,dot){
+  switch(type){
+    case'A':return['..RRRR..','.RRRRRR.','RRRRRRRR',dot,'RRRRRRRR','.rRRRRr.']; // standard 6r
+    case'B':return['.RRRRRR.','RRRRRRRR',dot,'.rRRRRr.']; // flat 4r
+    case'C':return['...RR...','..RRRR..','.RRRRRR.','RRRRRRRR',dot,'RRRRRRRR','.rRRRRr.']; // dome 7r
+    case'D':return['....R...','..RRRR..','RRRRRRRR',dot,'.rRRRRr.']; // pointed 5r
+    case'E':return['.R.RR.R.','RRRRRRRR','RRRRRRRR',dot,'.rRRRRr.']; // wavy 5r
+  }
+}
+const BODY=['.BBBBBB.','.SSSSSS.','.SeSSes.','.SSmSSS.','.BBBBBB.','.GGGGGG.','..GGGG..'];
+const LA=['..G..G..','..X..X..'],LB=['.G....G.','.X....X.'],LQ=['..GG.GG.','...X.X..'],LC=['G......G','X......X'];
+
+function buildFrames(capType,dot,animType){
+  const cap=getCapRows(capType,dot);
+  const lb=animType==='bob'?LQ:LB;
+  return{fA:[...cap,...BODY,...LA],fB:[...cap,...BODY,...lb],fC:[...cap,...BODY,...LC]};
+}
+
+// ── EXPRESSIONS ───────────────────────────────────────────────────────────
+const EXPRS=[['happy','.SeSSes.','.SmSSSmS'],['sad','.SeSSes.','.SSSSmSm'],['surprised','.SeSSes.','.SSOoSSS'],['sleepy','.SlSSlS.','.SSmSSS.']];
+function buildExpr(dot,ey,mo){return['..RRRR..','.RRRRRR.','RRRRRRRR',dot,'.rRRRRr.','.BBBBBB.',ey,mo,'.BBBBBB.'];}
+
+// ── ANIMATION SYSTEM ──────────────────────────────────────────────────────
+const allChars=[];
+let is8bit=false,gFrame=0,frameTimer;
+function advanceFrames(){
+  gFrame=(gFrame+1)%4;
+  allChars.forEach(({cvs,animType})=>{
+    const cnt=(is8bit&&animType==='walk')?3:2;
+    cvs.forEach((cv,i)=>cv.style.display=(i===gFrame%cnt)?'block':'none');
+  });
+}
+frameTimer=setInterval(advanceFrames,190);
+function toggleMode(){
+  is8bit=!is8bit;
+  document.body.classList.toggle('mode-8bit',is8bit);
+  const btn=document.getElementById('modeBtn');
+  btn.textContent=is8bit?'🟢 SMOOTH MODE':'⬛ 8-BIT MODE';
+  btn.classList.toggle('active',is8bit);
+  clearInterval(frameTimer);
+  frameTimer=setInterval(advanceFrames,is8bit?115:190);
+}
+
+// ── ADD SEASONAL CHARACTER ────────────────────────────────────────────────
+function addChar(id,name,dot,pal,animType,delay,dur,capType){
+  capType=capType||'A';
+  const{fA,fB,fC}=buildFrames(capType,dot,animType);
+  const cvA=renderSprite(fA,pal,5);
+  const cvB=renderSprite(fB,pal,5); cvB.style.display='none';
+  const cvC=renderSprite(fC,pal,5); cvC.style.display='none';
+  allChars.push({cvs:[cvA,cvB,cvC],animType});
+  const kf=animType==='walk'?'walkAnim':animType==='bob'?'bobAnim':'wigAnim';
+  const wrap=document.createElement('div');
+  wrap.className='anim-wrap'; wrap.dataset.anim=animType;
+  wrap.style.animation=`${kf} ${dur}s ease-in-out ${delay}s infinite`;
+  wrap.append(cvA,cvB,cvC);
+  const strip=document.createElement('div'); strip.className='expr-strip';
+  EXPRS.forEach(([,ey,mo])=>strip.appendChild(renderSprite(buildExpr(dot,ey,mo),pal,3)));
+  const card=document.createElement('div'); card.className='char-card';
+  const nm=document.createElement('div'); nm.className='char-name'; nm.textContent=name;
+  card.append(wrap,nm,strip);
+  document.getElementById(id).appendChild(card);
+}
+
+// ── ADD SINGLE-CANVAS CHARACTER (King, Queen, etc.) ───────────────────────
+function addSingle(id,name,cls,rows,pal,animKey,dur,delay,sc){
+  sc=sc||5;
+  const cv=renderSprite(rows,pal,sc);
+  allChars.push({cvs:[cv,cv,cv],animType:'bob'});
+  const kfMap={bob:'bobAnim',walk:'walkAnim',wig:'wigAnim',float:'floatAnim'};
+  const wrap=document.createElement('div'); wrap.className='anim-wrap'; wrap.dataset.anim=animKey;
+  wrap.style.animation=`${kfMap[animKey]||'bobAnim'} ${dur}s ease-in-out ${delay}s infinite`;
+  wrap.appendChild(cv);
+  const card=document.createElement('div'); card.className='char-card';
+  const nm=document.createElement('div'); nm.className='char-name'; nm.textContent=name;
+  card.appendChild(wrap); card.appendChild(nm);
+  if(cls){const cl=document.createElement('div');cl.className='char-class';cl.textContent=cls;card.appendChild(cl);}
+  document.getElementById(id).appendChild(card);
+}
+
+// ── ADD BABY ──────────────────────────────────────────────────────────────
+function addBaby(id,name,R,r,G,g,delay){
+  const d6='RWRWRR'; // W at 1,3 = 2 dots, 6-wide
+  const pal={R,r,W:WHITE,S:SKIN,s:'#cc9050',e:EYE,m:MOUTH,G,g,B:OUTL,X:SHOE};
+  const topRows=['.RRRR.','RRRRRR',d6,'.rRRr.','.BBBB.','.SSSS.','.eSSe.','.SSmS.','.BBBB.','.GGGG.'];
+  const fA=[...topRows,'.G..G.','.X..X.'];
+  const fB=[...topRows,'G....G','X....X'];
+  const cvA=renderSprite(fA,pal,5);
+  const cvB=renderSprite(fB,pal,5); cvB.style.display='none';
+  allChars.push({cvs:[cvA,cvB,cvA],animType:'bob'});
+  const wrap=document.createElement('div'); wrap.className='anim-wrap'; wrap.dataset.anim='bob';
+  wrap.style.animation=`bobAnim 0.85s ease-in-out ${delay}s infinite`;
+  wrap.append(cvA,cvB);
+  const card=document.createElement('div'); card.className='char-card';
+  const nm=document.createElement('div'); nm.className='char-name'; nm.textContent=name;
+  card.append(wrap,nm);
+  document.getElementById(id).appendChild(card);
+}
+
+// ── ADD FLORA ─────────────────────────────────────────────────────────────
+function addFlora(id,name,rows,pal,animCls,dur,del){
+  const cv=renderSprite(rows,pal,4);
+  const wrap=document.createElement('div');
+  wrap.className='flora-wrap '+animCls;
+  wrap.style.setProperty('--fd',dur+'s');
+  wrap.style.setProperty('--fdl',del+'s');
+  wrap.appendChild(cv);
+  const card=document.createElement('div'); card.className='flora-card';
+  const lbl=document.createElement('div'); lbl.className='flora-name'; lbl.textContent=name;
+  card.append(wrap,lbl);
+  document.getElementById(id).appendChild(card);
+}
+
+// ── FLORA PIXEL DATA ──────────────────────────────────────────────────────
+const TULIP  =['..PP..','.PPPP.','.PPPP.','PPPPPP','.pPPp.','..pp..','..GG..','..GG..','.gGG..','..GG..','..GG..','..GG..','..GG..','..GG..'];
+const DAISY  =['..W.W...','.WWYWWW.','WWYYYWWW','.WWYWWW.','..W.W...','...G....','...G....','..GGG...','...G....','...G....','...G....','...G....','...G....'];
+const ROSE   =['..PP..','.PPPP.','PPPPPP','PpPpPP','.PPPP.','..pp..','..GG..','..GG..','.gGG..','..GG..','..GG..','..GG..','..GG..'];
+const SUNFL  =['..YYY...','.YYYYYY.','YYYcccYY','YYYcccYY','YYYcccYY','.YYYYYY.','..YYY...','...GG...','...GG...','..GGG...','...GG...','...GG...','...GG...','...GG...'];
+const POPPY  =['..PP..','.PPPP.','PPPPPP','PPPkPP','PPkkPP','.PPkP.','..GG..','..GG..','..GG..','..GG..','..GG..','..GG..'];
+const LAVEND =['.LLll.','LLLlll','.LLll.','.LLll.','.LLll.','..GG..','..GG..','..GG..','.gG...','..GG..','..GG..','..GG..','..GG..','..GG..'];
+const CHRY   =['..PPPP..','.PPPPPP.','PPPPPPPP','PPPpPPPP','PPPPPPPP','.PPPPPP.','..PPPP..','...GG...','..GGG...','...GG...','...GG...','...GG...','...GG...'];
+const MARI   =['..PPP..','.PPPPP.','PPPPPPP','PPPpPPP','.PPPPP.','..PPP..','...GG..','...GG..','..gGG..','...GG..','...GG..','...GG..'];
+const LEAF   =['..LLLL..','.LLLLLL.','LLLLLLLL','LlLLLLlL','.LLLLLL.','..LLLL..','...LL...','...ll...'];
+const HOLLY  =['..GG.GG.','.GGGGGGG','GGGGGGGG','.GGGGGGG','..GG.GG.','...RRR..','...RRR..','....GG..','....GG..','....GG..','....GG..'];
+const PINE   =['....T....','...TTT...','..TTTTT..','.TTTTTTT.','TTTTTTTTT','....B....','....B....','....B....'];
+const SNOWFL =['....S....','..S.S.S..','...SSS...','SSSSSSSSS','...SSS...','..S.S.S..','....S....'];
+const BLBELL =['.BBBB.','BBBBBB','BbBBbB','.BBBB.','..BB..','..GG..','.GGG..','..GG..','..GG..','..GG..','..GG..','..GG..'];
+const CHERRY =['..PP..','.PPPP.','PPPPPP','PPpPPP','.PPPP.','..pp..','..GG..','..GG..','.gGG..','..GG..','..GG..','..GG..','..GG..','..GG..'];
+
+// ── KING & QUEEN PIXEL DATA ───────────────────────────────────────────────
+const KING_ROWS=[
+  '..C.C.C.','CCCCCCCC','..RRRR..', // crown then cap
+  '.RRRRRR.','RRRRRRRR','RRWRRWRR','RRRRRRRR','.rRRRRr.',
+  '.BBBBBB.','.SSSSSS.','.SeSSes.','.SSmSSS.','.BBBBBB.',
+  'Z.PPPPPP','Z.PPPPPP','Z..P..P.','...X..X.',
+];
+const KING_PAL={C:'#f8d020',R:'#a02010',r:'#700808',W:WHITE,S:SKIN,s:'#cc9050',e:EYE,m:MOUTH,B:OUTL,X:SHOE,Z:'#c8a010',P:'#7028b0'};
+
+const QUEEN_ROWS=[
+  '..C.C.C.','CCCCCCCC', // crown
+  '..PPPP..', // pink cap
+  '.PPPPPP.','PPPPPPPP','PPwPPwPP','PPPPPPPP','.pPPPPp.',
+  '.BBBBBB.','.SSSSSS.','.SeSSes.','.SSmSSS.','.BBBBBB.',
+  '.DDDDDD.','DDDDDDDD','DDDDDDDD','.DDDDDD.','..D..D..','..X..X..',
+];
+const QUEEN_PAL={C:'#f8d020',P:'#f080b8',p:'#b04880',w:WHITE,S:SKIN,s:'#cc9050',e:EYE,m:MOUTH,B:OUTL,X:SHOE,D:'#e050a0'};
+
+// ── SEASON DATA ───────────────────────────────────────────────────────────
+// [name, capC, capD, clothC, clothD, animType, spd, delay, capType]
+const SEASONS=[
+  { cid:'sc', fid:'sf',
+    chars:[
+      ['Cherry Blossom','#f0a8c8','#b06888','#3a8830','#1a5818','walk',3.0,-0.0,'A'],
+      ['Meadow',        '#70c860','#388820','#c080d0','#804898','bob', 0.9,-0.4,'A'],
+      ['April Rain',    '#c090e0','#8050b8','#2888a8','#107888','wig', 0.55,-0.8,'A'],
+      ['Dewdrop',       '#88e0b0','#408868','#e07878','#b03838','walk',2.8,-1.2,'A'],
+      ['Breezy',        '#b0e0f0','#608898','#e09030','#a05010','bob', 1.0,-1.6,'A'],
+      // new — different mushroom types
+      ['Chanterelle',   '#e8a020','#a06008','#3a7020','#1a4010','bob', 1.1,-2.0,'E'], // wavy cap
+      ['Oyster',        '#d0c8b0','#909080','#607848','#304020','walk',3.2,-2.4,'B'], // flat cap
+      ['Fairy Ring',    '#c890f0','#9060c8','#30c090','#108060','wig', 0.52,-2.8,'D'], // pointed
+      ['Spring Fawn',   '#c0a060','#806030','#70b040','#408010','bob', 1.3,-3.2,'C'], // dome
+    ],
+    flora:[
+      ['Cherry Blossom',CHERRY,{P:'#f8c0d8',p:'#e080a0',G:SG,g:SD},'flora-bop',  1.7,-0.0],
+      ['Pink Tulip',    TULIP, {P:'#f090c8',p:'#c06888',G:SG,g:SD},'flora-sway', 2.2,-0.5],
+      ['Daisy',         DAISY, {W:WHITE,Y:'#f0d020',G:SG,g:SD},    'flora-bop',  1.5,-1.0],
+      ['Lavender',      LAVEND,{L:'#c090e8',l:'#9060c0',G:SG,g:SD},'flora-quiver',1.1,-0.3],
+      ['Pink Rose',     ROSE,  {P:'#f080b0',p:'#b04870',G:SG,g:SD},'flora-sway', 2.6,-0.7],
+    ],
+  },
+  { cid:'uc', fid:'uf',
+    chars:[
+      ['Sunbeam',  '#e8c020','#a07808','#2050c8','#0e30a0','walk',2.4,-0.0,'A'],
+      ['Beach',    '#e06830','#a03810','#20a870','#107840','walk',2.7,-0.3,'A'],
+      ['Tropical', '#e02020','#981010','#20c840','#108820','bob', 0.7,-0.6,'A'],
+      ['Garden',   '#c020a0','#881060','#88c020','#508010','wig', 0.4,-0.9,'A'],
+      ['Lagoon',   '#20b8e0','#0870a0','#e07030','#a03808','walk',2.2,-1.2,'A'],
+      // new
+      ["Caesar's", '#e07820','#a04808','#d0a010','#907008','walk',2.6,-1.5,'C'], // dome — stately
+      ['Deathcap', '#a0c860','#608030','#201808','#100c04','wig', 0.45,-1.8,'B'], // flat — sneaky
+      ['Coral',    '#f06060','#b03030','#2080b0','#104878','bob', 0.75,-2.1,'D'], // pointed
+      ['Goldcap',  '#f0c030','#a08010','#306820','#184010','walk',2.9,-2.4,'C'], // dome
+    ],
+    flora:[
+      ['Sunflower',    SUNFL, {Y:'#f8d020',c:'#6a3a08',G:SG,g:SD},'flora-sway',  3.0,-0.0],
+      ['Red Rose',     ROSE,  {P:'#d02020',p:'#901010',G:SG,g:SD},'flora-sway',  2.4,-0.4],
+      ['Poppy',        POPPY, {P:'#d82020',k:'#201008',G:SG,g:SD},'flora-bop',   1.4,-0.8],
+      ['Red Tulip',    TULIP, {P:'#c82020',p:'#901010',G:SG,g:SD},'flora-sway',  2.0,-0.2],
+      ['Yellow Daisy', DAISY, {W:'#f8f0a0',Y:'#f0b020',G:SG,g:SD},'flora-bop',  1.6,-0.6],
+    ],
+  },
+  { cid:'ac', fid:'af',
+    chars:[
+      ['Harvest','#e06020','#a02808','#8a2018','#5a0808','bob', 1.4,-0.0,'A'],
+      ['Russet', '#9a3818','#6a1808','#c87820','#906008','walk',4.2,-0.5,'A'],
+      ['Maple',  '#8a1010','#5a0808','#d0a020','#906808','bob', 1.6,-1.0,'A'],
+      ['Amber',  '#c85020','#904010','#402890','#201860','walk',3.8,-1.5,'A'],
+      ['Cider',  '#b84010','#802008','#6a4818','#3a2808','bob', 1.2,-2.0,'A'],
+      // new
+      ['Porcini','#8a5028','#5a2810','#d08020','#906010','bob', 1.5,-2.5,'C'], // dome
+      ['Inkcap', '#201008','#100804','#e0d090','#a09050','wig', 0.7,-3.0,'D'], // pointed/conical
+      ['Honey',  '#c09030','#806010','#6a3818','#3a1808','walk',4.5,-3.5,'B'], // flat
+      ['Witch',  '#601878','#380848','#180e0a','#080604','wig', 0.65,-4.0,'C'], // dome dark
+    ],
+    flora:[
+      ['Chrysanth.', CHRY, {P:'#e07820',p:'#a04010',G:SG,g:SD},'flora-quiver',1.0,-0.0],
+      ['Marigold',   MARI, {P:'#f0a020',p:'#c06808',G:SG,g:SD},'flora-bop',   1.8,-0.3],
+      ['Fallen Leaf',LEAF, {L:'#e05818',l:'#a02808',G:SG,g:SD},'flora-sway',  3.5,-0.6],
+      ['Orange Tulip',TULIP,{P:'#e06820',p:'#a03808',G:SG,g:SD},'flora-sway', 2.8,-0.9],
+      ['Amber Rose', ROSE, {P:'#d07020',p:'#904010',G:SG,g:SD},'flora-quiver',1.3,-0.2],
+    ],
+  },
+  { cid:'wc', fid:'wf',
+    chars:[
+      ['Frost',    '#e0e8f8','#a0b0c8','#1a2860','#0a1438','wig', 0.42,-0.0,'A'],
+      ['Blizzard', '#78c0e0','#3888b0','#d0d8e8','#a0a8c0','bob', 1.6,-0.4,'A'],
+      ['Cozy',     '#5828c0','#2810a0','#c02020','#880808','wig', 0.48,-0.8,'A'],
+      ['Midnight', '#101840','#080e28','#78c0e0','#3888b0','walk',3.6,-1.2,'A'],
+      ['Icicle',   '#b0e0f8','#6098c0','#102848','#080e28','bob', 1.8,-1.6,'A'],
+      // new
+      ['Ghost',    '#d0e8f8','#90b0d0','#8090a8','#485868','float',2.8,-2.0,'C'], // dome pale
+      ['Velvet',   '#e07020','#a04010','#1a1018','#0a080e','bob', 1.3,-2.4,'B'], // flat warm
+      ['Parasol',  '#d8d0c0','#989080','#302820','#201808','walk',4.0,-2.8,'B'], // flat grey-wide
+      ['Sprite',   '#70c0e8','#3080b0','#c0c8d0','#808898','wig', 0.4,-3.2,'D'], // pointed ice
+    ],
+    flora:[
+      ['Holly',     HOLLY,   {G:'#1a7820',R:'#d82020'},          'flora-quiver',1.4,-0.0],
+      ['Pine Tree', PINE,    {T:'#267828',B:'#7a4020'},           'flora-sway',  4.5,-0.5],
+      ['Snowflake', SNOWFL,  {S:'#b8d8f8'},                       'flora-bop',   2.0,-1.0],
+      ['Bluebell',  BLBELL,  {B:'#2858d8',b:'#0e30a0',G:SG,g:SD},'flora-sway',  2.3,-0.3],
+      ['Ice Tulip', TULIP,   {P:'#a0c8e8',p:'#6090c0',G:'#3060a0',g:'#183868'},'flora-sway',2.6,-0.8],
+    ],
+  },
+];
+
+// ── BUILD SEASONAL CHARS & FLORA ──────────────────────────────────────────
+SEASONS.forEach(data=>{
+  data.chars.forEach(([name,R,r,G,g,at,spd,del,ct],i)=>{
+    const dot=i%2===0?DOT2:DOT3;
+    addChar(data.cid,name,dot,cp(R,r,G,g),at,del,spd,ct);
+  });
+  data.flora.forEach(([name,rows,pal,cls,dur,del])=>addFlora(data.fid,name,rows,pal,cls,dur,del));
+});
+
+// ── BUILD ROYALS ──────────────────────────────────────────────────────────
+addSingle('royals','Mushroom King',  'RULER OF THE REALM', KING_ROWS, KING_PAL, 'bob',  2.5, 0.0, 5);
+addSingle('royals','Mushroom Queen', 'GRACIOUS SOVEREIGN', QUEEN_ROWS,QUEEN_PAL,'wig',  3.5,-0.8, 5);
+
+// ── BUILD BABIES ──────────────────────────────────────────────────────────
+addBaby('babies','Spring Babe','#f0a8c8','#b06888','#3a8830','#1a5818',  0.0);
+addBaby('babies','Summer Babe','#e8c020','#a07808','#2050c8','#0e30a0', -0.3);
+addBaby('babies','Autumn Babe','#c85020','#904010','#d0a020','#906808', -0.6);
+addBaby('babies','Winter Babe','#b0e0f8','#6098c0','#1a2860','#0a1438', -0.9);
+addBaby('babies','Tiny Red',   '#c82020','#901010','#3a7830','#1a4a18', -1.2);
+addBaby('babies','Tiny Blue',  '#2050d8','#0e2fa0','#8a4a28','#5a2a10', -1.5);
+</script>
+</body>
+</html>

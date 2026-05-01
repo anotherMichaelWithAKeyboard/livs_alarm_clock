@@ -19,6 +19,7 @@ class AlarmManager:
         self.config_path = Path(config_path)
         self.alarms = []
         self.holiday_service = HolidayService()
+        self.trigger = AlarmTrigger()
         self.load_alarms()
 
     def load_alarms(self):
@@ -127,6 +128,9 @@ class AlarmManager:
             if self.should_alarm_trigger(alarm, now):
                 triggered.append(alarm)
 
+        if triggered and not self.trigger.is_triggered and not self.trigger.check_snooze_expired():
+            self.trigger.trigger(triggered[0])
+
         return triggered
 
     def is_weekend(self, check_date=None):
@@ -138,3 +142,49 @@ class AlarmManager:
     def is_holiday(self, check_date=None):
         """Check if date is a public holiday"""
         return self.holiday_service.is_public_holiday(check_date)
+
+
+class AlarmTrigger:
+    def __init__(self):
+        self.is_triggered = False
+        self.triggered_alarm = None
+        self.snooze_until = None
+        self._sound = None
+
+    def trigger(self, alarm: dict):
+        self.is_triggered = True
+        self.triggered_alarm = alarm
+        try:
+            import pygame
+            import os
+            sound_file = alarm.get("sound", "")
+            sounds_dir = Path(__file__).parent.parent.parent / "assets" / "sounds"
+            sound_path = sounds_dir / sound_file
+            if pygame.mixer.get_init() and sound_path.exists():
+                self._sound = pygame.mixer.Sound(str(sound_path))
+                self._sound.play(-1)
+        except Exception:
+            pass
+
+    def snooze(self, minutes: int = 9):
+        self.snooze_until = datetime.now() + timedelta(minutes=minutes)
+        self.is_triggered = False
+        try:
+            if self._sound:
+                self._sound.stop()
+        except Exception:
+            pass
+
+    def dismiss(self):
+        self.is_triggered = False
+        self.triggered_alarm = None
+        self.snooze_until = None
+        try:
+            if self._sound:
+                self._sound.stop()
+        except Exception:
+            pass
+        self._sound = None
+
+    def check_snooze_expired(self) -> bool:
+        return self.snooze_until is not None and datetime.now() >= self.snooze_until

@@ -13,7 +13,7 @@ class ThemeManager:
         self.themes = {
             "summer": {
                 "name": "Summer",
-                "bg_color": (230, 240, 250),  # Soft sky blue
+                "bg_color": (18, 22, 35),  # Deep night blue
                 "text_color": (80, 100, 140),  # Deep blue-gray
                 "accent_color": (255, 200, 100),  # Sunny yellow
                 "secondary_color": (100, 180, 220),  # Ocean blue
@@ -26,7 +26,7 @@ class ThemeManager:
             },
             "autumn": {
                 "name": "Autumn",
-                "bg_color": (245, 235, 220),  # Warm beige
+                "bg_color": (28, 18, 12),  # Deep warm brown
                 "text_color": (100, 70, 50),  # Deep brown
                 "accent_color": (220, 120, 60),  # Burnt orange
                 "secondary_color": (200, 160, 100),  # Golden brown
@@ -39,7 +39,7 @@ class ThemeManager:
             },
             "winter": {
                 "name": "Winter",
-                "bg_color": (235, 240, 245),  # Icy white-blue
+                "bg_color": (12, 16, 26),  # Deep icy dark
                 "text_color": (60, 80, 100),  # Cool gray-blue
                 "accent_color": (150, 200, 230),  # Ice blue
                 "secondary_color": (200, 210, 230),  # Frost
@@ -52,7 +52,7 @@ class ThemeManager:
             },
             "spring": {
                 "name": "Spring",
-                "bg_color": (240, 250, 240),  # Mint green tint
+                "bg_color": (12, 22, 15),  # Deep forest dark
                 "text_color": (70, 100, 80),  # Forest green
                 "accent_color": (140, 200, 120),  # Fresh green
                 "secondary_color": (255, 180, 200),  # Cherry blossom pink
