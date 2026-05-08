@@ -8,6 +8,7 @@ from typing import Dict, List
 
 CHAR_SC  = 3   # screen pixels per sprite pixel (characters)
 FLORA_SC = 2   # screen pixels per sprite pixel (flora)
+BABY_SC  = 3   # same scale — fewer pixels makes them visually smaller
 
 SKIN  = '#f2c07a'
 EYE   = '#1e0e04'
@@ -175,15 +176,68 @@ _WINTER = {
 
 SEASON_MAP = {'Spring': _SPRING, 'Summer': _SUMMER, 'Autumn': _AUTUMN, 'Winter': _WINTER}
 
+# ── Little Folk (baby mushrooms) ─────────────────────────────────────────────
+BABY_ROWS = [
+    '.RRRR.', 'RRRRRR', 'RWRWRR', '.rRRr.',
+    '.BBBB.', '.SSSS.', '.eSSe.', '.SSmS.',
+    '.BBBB.', '.GGGG.', '.G..G.', '.X..X.',
+]
+
+BABIES_DATA = [
+    ('#f0a8c8', '#b06888', '#3a8830', '#1a5818'),  # Spring Babe
+    ('#e8c020', '#a07808', '#2050c8', '#0e30a0'),  # Summer Babe
+    ('#c85020', '#904010', '#d0a020', '#906808'),  # Autumn Babe
+    ('#b0e0f8', '#6098c0', '#1a2860', '#0a1438'),  # Winter Babe
+    ('#c82020', '#901010', '#3a7830', '#1a4a18'),  # Tiny Red
+    ('#2050d8', '#0e2fa0', '#8a4a28', '#5a2a10'),  # Tiny Blue
+]
+
+
+def _make_baby(R, r, G, g):
+    pal = {'R': R, 'r': r, 'W': WHITE, 'S': SKIN, 's': '#cc9050',
+           'e': EYE, 'm': MOUTH, 'G': G, 'g': g, 'B': OUTL, 'X': SHOE}
+    return _render(BABY_ROWS, pal, BABY_SC)
+
+
+# ── Spore Mushrooms (cute faceless caps with stems) ───────────────────────────
+SPORE_ROWS = [
+    '...RRRRRR...', '..RRRRRRRR..',
+    '.RRRRRRRRRR.', 'RRRRRRRRRRRR',
+    'RRWRRRRRWRRR', 'RRRRWRRWRRRR',
+    'RRRRRRRRRRRR', '.rRRRRRRRRr.',
+    '..rRRRRRRr..', '...rrrrrr...',
+    '....NNNN....', '....NNNN....',
+    '....NNNN....', '....NNNN....',
+    '...NNNNNN...', '...BBBBBB...',
+]
+
+SPORES_DATA = [
+    ('#e060a0', '#a03070'),  # Pixie Cap
+    ('#60c0e0', '#2070a0'),  # Glowshroom
+    ('#f0c040', '#a07810'),  # Honeydew
+    ('#60d8a0', '#208860'),  # Mintling
+    ('#e04030', '#902010'),  # Ember
+    ('#9040c0', '#601890'),  # Plum
+    ('#4858d0', '#202880'),  # Indigo Cap
+    ('#f08868', '#a04830'),  # Coral Cap
+]
+
+
+def _make_spore(R, r):
+    pal = {'R': R, 'r': r, 'W': WHITE, 'N': '#f4ecd0', 'B': '#3a2a14'}
+    return _render(SPORE_ROWS, pal, FLORA_SC)
+
+
 # ── Royals ────────────────────────────────────────────────────────────────────
 KING_ROWS = [
     '..C.C.C.','CCCCCCCC','..RRRR..',
     '.RRRRRR.','RRRRRRRR','RRWRRWRR','RRRRRRRR','.rRRRRr.',
     '.BBBBBB.','.SSSSSS.','.SeSSes.','.SSmSSS.','.BBBBBB.',
-    'Z.PPPPPP','Z.PPPPPP','Z..P..P.','...X..X.',
+    'Z.PPPPPP','Z.PPPPPP','Z..P..P.',
+    '..P..P..','...X..X.',
 ]
 KING_PAL = {'C':'#f8d020','R':'#a02010','r':'#700808','W':WHITE,'S':SKIN,'s':'#cc9050',
-            'e':EYE,'m':MOUTH,'B':OUTL,'X':SHOE,'Z':'#c8a010','P':'#7028b0'}
+            'e':EYE,'m':MOUTH,'B':OUTL,'X':SHOE,'Z':'#c8a010','P':'#7028b0','G':'#7028b0'}
 
 QUEEN_ROWS = [
     '..C.C.C.','CCCCCCCC',
@@ -222,8 +276,10 @@ class PixelBorder:
 
     def _build_border(self, season):
         sprites = []
-        char_pool  = [self._make_char(c, i)  for i, c in enumerate(season['chars'])]
-        flora_pool = [self._make_flora(f)     for f in season['flora']]
+        char_pool   = [self._make_char(c, i)  for i, c in enumerate(season['chars'])]
+        flora_pool  = [self._make_flora(f)     for f in season['flora']]
+        babies_pool = [_make_baby(*b) for b in BABIES_DATA]
+        spores_pool = [_make_spore(*s) for s in SPORES_DATA]
 
         king_s  = _render(KING_ROWS,  KING_PAL,  CHAR_SC)
         queen_s = _render(QUEEN_ROWS, QUEEN_PAL, CHAR_SC)
@@ -232,13 +288,20 @@ class PixelBorder:
         ci = [0]
 
         def pick_char():
-            if random.random() < 0.02:
+            rnd = random.random()
+            if rnd < 0.02:
                 return random.choice(royals)
+            if rnd < 0.07:
+                surf = random.choice(babies_pool)
+                return [surf, surf], 'bob'
             entry = char_pool[ci[0] % len(char_pool)]
             ci[0] += 1
             return entry
 
         def pick_flora():
+            if random.random() < 0.15:
+                surf = random.choice(spores_pool)
+                return surf, 'flora_bop'
             return random.choice(flora_pool)
 
         def add(surfs, anim, x, y):

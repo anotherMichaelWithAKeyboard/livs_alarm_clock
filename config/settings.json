@@ -1,7 +1,8 @@
 {
   "display": {
     "fullscreen": true,
-    "brightness": 100
+    "brightness": 100,
+    "background": "Orange Leaves"
   },
   "dimMode": {
     "enabled": true,

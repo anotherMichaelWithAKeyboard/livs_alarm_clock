@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flapboard Display — Pixel Art</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Press Start 2P',monospace;
+    background:#1a1208; min-height:100vh;
+    color:#f0d090; padding:32px 28px;
+  }
+  h1 { font-size:11px; color:#f0d090; margin-bottom:6px; }
+  .sub { font-size:5px; color:#907050; letter-spacing:2px; margin-bottom:28px; }
+
+  .section { margin-bottom:36px; }
+  .section-title {
+    font-size:7px; color:#e0b070; margin-bottom:16px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .section-title::after { content:''; flex:1; height:2px; background:rgba(224,176,112,.18); }
+  .section-note { font-size:4.5px; color:#806040; line-height:2; margin-bottom:14px; max-width:600px; }
+
+  .row { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; }
+
+  /* CLOCK DEMO */
+  .clock-demo {
+    background:#08060a; padding:28px 32px;
+    border-radius:6px;
+    border:3px solid #2a1c0c;
+    display:inline-flex; gap:6px; align-items:center;
+    box-shadow: 0 0 0 4px #4a3018, 0 8px 20px rgba(0,0,0,.6);
+  }
+  .colon-block {
+    display:flex; flex-direction:column; gap:14px;
+    padding:0 4px;
+  }
+  .colon-dot {
+    width:10px; height:10px; background:#f0d090;
+    box-shadow: 0 0 6px #f0d090;
+    image-rendering:pixelated;
+  }
+
+  /* FLAP DIGIT */
+  .flap {
+    position:relative;
+    width:84px; height:120px;
+    background:#0a0806;
+    border-radius:4px;
+    perspective:340px;
+    box-shadow: inset 0 0 0 2px #2a1c0c;
+    overflow:hidden;
+  }
+  .flap canvas {
+    image-rendering:pixelated; image-rendering:crisp-edges;
+    display:block;
+  }
+  .flap .top, .flap .bot {
+    position:absolute; left:0; width:100%; height:50%;
+    overflow:hidden;
+    background:#16100a;
+  }
+  .flap .top { top:0;    border-bottom:1px solid #000; }
+  .flap .bot { bottom:0; border-top:1px solid #000; }
+  .flap .top canvas { position:absolute; left:0; top:0; }
+  .flap .bot canvas { position:absolute; left:0; bottom:0; }
+
+  /* hinge highlight */
+  .flap::after {
+    content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+    background:linear-gradient(to bottom, rgba(0,0,0,.7), rgba(80,60,30,.4));
+    z-index:30; transform:translateY(-1px); pointer-events:none;
+  }
+  /* side rails */
+  .flap::before {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    border-left:3px solid #2a1c0c;
+    border-right:3px solid #2a1c0c;
+    border-radius:4px;
+    box-shadow: inset 2px 0 0 #4a3018, inset -2px 0 0 #4a3018;
+    z-index:20;
+  }
+
+  /* Single flipping panel — hinged at middle, rotates 0° → -180°.
+     Front initially shows OLD top. At midpoint, content swaps to NEW bottom
+     drawn upside-down so it appears right-side up after the panel completes its flip
+     (the back face naturally mirrors X-rotated content vertically). */
+  .flap .flip-panel {
+    position:absolute; left:0; top:0; width:100%; height:50%;
+    overflow:hidden;
+    background:#16100a;
+    transform-origin: bottom center;
+    z-index:15;
+    border-bottom:1px solid #000;
+    backface-visibility:visible;
+  }
+  .flap .flip-panel canvas { position:absolute; left:0; top:0; }
+  .flap .flip-panel.animate {
+    animation: flipFull 0.7s cubic-bezier(.45,.05,.55,.95) forwards;
+  }
+  @keyframes flipFull {
+    0%   { transform:rotateX(0deg);    filter:brightness(1); }
+    49%  { filter:brightness(0.25); }
+    50%  { transform:rotateX(-90deg); filter:brightness(0.25); }
+    51%  { filter:brightness(0.25); }
+    100% { transform:rotateX(-180deg); filter:brightness(1); }
+  }
+
+  /* Asset sheet display */
+  .asset-card {
+    background:#0a0806;
+    border:2px solid #2a1c0c;
+    border-radius:4px;
+    padding:14px 12px 8px;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .asset-card canvas { image-rendering:pixelated; }
+  .asset-label { font-size:4px; color:#806040; letter-spacing:2px; text-transform:uppercase; }
+
+  /* Border samples */
+  .border-sample {
+    background:#0a0806;
+    padding:10px;
+    border-radius:4px;
+  }
+  .border-sample canvas { display:block; image-rendering:pixelated; }
+
+  /* Controls */
+  .controls {
+    display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;
+    align-items:center;
+  }
+  button.fb {
+    font-family:'Press Start 2P',monospace;
+    font-size:6px; cursor:pointer;
+    background:#f0d090; color:#1a1208; border:none;
+    padding:9px 13px; border-radius:3px; letter-spacing:1px;
+    transition:background .15s;
+  }
+  button.fb:hover { background:#fff0a0; }
+  button.fb.alt { background:#2a1c0c; color:#f0d090; border:1px solid #4a3018; }
+  button.fb.alt:hover { background:#4a3018; }
+
+  .label-tag {
+    font-size:5px; color:#806040; letter-spacing:2px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🛬 FLAPBOARD DISPLAY ASSETS</h1>
+<div class="sub">SPLIT-FLAP · ANIMATED · PIXEL ART · OLD AIRPORT STYLE</div>
+
+<!-- LIVE CLOCK -->
+<div class="section">
+  <div class="section-title">⏰ Live Clock Preview</div>
+  <div class="section-note">Click "TICK" to advance the time one minute. Click "RUN" to start it ticking automatically. The flap animation plays whenever a digit changes — top half flops down, bottom half flips up — exactly like a Solari board.</div>
+  <div class="clock-demo" id="clockDemo">
+    <div class="flap" data-pos="0"><div class="top"></div><div class="bot"></div></div>
+    <div class="flap" data-pos="1"><div class="top"></div><div class="bot"></div></div>
+    <div class="colon-block"><div class="colon-dot"></div><div class="colon-dot"></div></div>
+    <div class="flap" data-pos="2"><div class="top"></div><div class="bot"></div></div>
+    <div class="flap" data-pos="3"><div class="top"></div><div class="bot"></div></div>
+  </div>
+  <div class="controls">
+    <button class="fb" onclick="tickOnce()">▸ TICK +1 MIN</button>
+    <button class="fb alt" id="runBtn" onclick="toggleRun()">▶ RUN</button>
+    <button class="fb alt" onclick="randomTime()">🎲 RANDOM</button>
+    <span class="label-tag" id="timeLbl">12:34</span>
+  </div>
+</div>
+
+<!-- DIGIT ASSETS -->
+<div class="section">
+  <div class="section-title">🔢 Digit Assets (0–9)</div>
+  <div class="section-note">Each digit is rendered as a 14×20 pixel character on a flap. Cream-on-black like classic Solari split-flap displays at airports and train stations.</div>
+  <div class="row" id="digitRow"></div>
+</div>
+
+<!-- LETTER ASSETS -->
+<div class="section">
+  <div class="section-title">🔤 Letter Assets (A–Z)</div>
+  <div class="section-note">Full alphabet for destination boards, dates, AM/PM indicators, and labels.</div>
+  <div class="row" id="letterRow"></div>
+</div>
+
+<!-- BORDER PIECES -->
+<div class="section">
+  <div class="section-title">🪞 Bezel & Border Pieces</div>
+  <div class="section-note">Wooden bezel pieces to frame the flap clock. Includes side rails, top/bottom strips, corner pieces, and a full assembled frame.</div>
+  <div class="row" id="borderRow"></div>
+</div>
+
+<!-- ANIMATION DEMO -->
+<div class="section">
+  <div class="section-title">🎬 Single-Digit Flap Animation</div>
+  <div class="section-note">A single flap cycling through 0→9 endlessly so you can see the transition clearly.</div>
+  <div class="row">
+    <div class="asset-card">
+      <div class="flap" id="demoFlap" data-pos="d"><div class="top"></div><div class="bot"></div></div>
+      <div class="asset-label">Auto-cycle 0→9</div>
+    </div>
+    <div class="asset-card">
+      <div class="flap" id="demoFlap2" data-pos="e"><div class="top"></div><div class="bot"></div></div>
+      <div class="asset-label">Auto-cycle A→Z</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── PIXEL DIGIT FONT (14 wide × 20 tall) ─────────────────────────────────
+// X = on pixel, . = transparent (cream on black)
+const FONT_W = 14, FONT_H = 20;
+const DIGITS = {
+  '0': [
+    '..XXXXXXXX....',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX......XXXX..',
+    'XX.....XXXXX..',
+    'XX....XX.XXX..',
+    'XX...XX..XXX..',
+    'XX..XX...XXX..',
+    'XX.XX....XXX..',
+    'XXXX.....XXX..',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXXX....',
+    '..............',
+    '..............',
+  ],
+  '1': [
+    '....XXXX......',
+    '...XXXXX......',
+    '..XXXXXX......',
+    '.XXX.XXX......',
+    'XX...XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '.....XXX......',
+    '..XXXXXXXXX...',
+    '..XXXXXXXXX...',
+    '..XXXXXXXXX...',
+    '..............',
+    '..............',
+  ],
+  '2': [
+    '..XXXXXXXX....',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    '..........XX..',
+    '..........XX..',
+    '.........XXX..',
+    '........XXX...',
+    '.......XXX....',
+    '......XXX.....',
+    '.....XXX......',
+    '....XXX.......',
+    '...XXX........',
+    '..XXX.........',
+    '.XXX..........',
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    '..............',
+    '..............',
+  ],
+  '3': [
+    '..XXXXXXXX....',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    '..........XX..',
+    '..........XX..',
+    '.........XXX..',
+    '.....XXXXXX...',
+    '.....XXXXXX...',
+    '.....XXXXXX...',
+    '.........XXX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXXX....',
+    '..............',
+    '..............',
+  ],
+  '4': [
+    '........XXX...',
+    '.......XXXX...',
+    '......XXXXX...',
+    '.....XXXXXX...',
+    '....XXX.XXX...',
+    '...XXX..XXX...',
+    '..XXX...XXX...',
+    '.XXX....XXX...',
+    'XXX.....XXX...',
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    '........XXX...',
+    '........XXX...',
+    '........XXX...',
+    '........XXX...',
+    '........XXX...',
+    '........XXX...',
+    '..............',
+    '..............',
+  ],
+  '5': [
+    'XXXXXXXXXXX...',
+    'XXXXXXXXXXX...',
+    'XXXXXXXXXXX...',
+    'XX............',
+    'XX............',
+    'XX............',
+    'XX............',
+    'XXXXXXXXX.....',
+    'XXXXXXXXXX....',
+    'XXX......XXX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXXX....',
+    '..............',
+    '..............',
+  ],
+  '6': [
+    '....XXXXXXX...',
+    '..XXXXXXXXX...',
+    '.XXX......XX..',
+    'XXX...........',
+    'XX............',
+    'XX............',
+    'XX............',
+    'XX.XXXXXXX....',
+    'XXXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXXX....',
+    '..............',
+    '..............',
+  ],
+  '7': [
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    'XXXXXXXXXXXX..',
+    '..........XX..',
+    '.........XXX..',
+    '........XXX...',
+    '.......XXX....',
+    '......XXX.....',
+    '......XXX.....',
+    '.....XXX......',
+    '.....XXX......',
+    '....XXX.......',
+    '....XXX.......',
+    '...XXX........',
+    '...XXX........',
+    '..XXX.........',
+    '..XXX.........',
+    '..XXX.........',
+    '..............',
+    '..............',
+  ],
+  '8': [
+    '..XXXXXXXX....',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '.XXXXXXXXXX...',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXXX....',
+    '..............',
+    '..............',
+  ],
+  '9': [
+    '..XXXXXXXX....',
+    '.XXXXXXXXXX...',
+    'XXX......XXX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XX........XX..',
+    'XXX......XXX..',
+    '.XXXXXXXXXXX..',
+    '...XXXXXXXXX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    '..........XX..',
+    'XX.......XXX..',
+    '.XXXXXXXXXX...',
+    '..XXXXXXX.....',
+    '..............',
+    '..............',
+  ],
+};
+
+// ── LETTER FONT (compact 14×20, blocky) ──────────────────────────────────
+function rowsFromShorthand(s) {
+  // shorthand uses same pattern but stretched; here we just verify length
+  return s;
+}
+const LETTERS = {
+  'A':[
+    '......XX......','.....XXXX.....','....XXXXXX....','...XXX..XXX...',
+    '..XXX....XXX..','.XXX......XXX.','XXX........XXX','XX..........XX',
+    'XX..........XX','XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'B':[
+    'XXXXXXXXXXXX..','XXXXXXXXXXXXX.','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX.........XX.','XXXXXXXXXXXXX.',
+    'XXXXXXXXXXXX..','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX.........XX.',
+    'XXXXXXXXXXXX..','XXXXXXXXXXX...','..............','..............',
+  ],
+  'C':[
+    '..XXXXXXXXXX..','.XXXXXXXXXXXX.','XXX........XXX','XX..........XX',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX..........XX',
+    'XXX........XXX','.XXXXXXXXXXXX.','..XXXXXXXXXX..','..............',
+  ],
+  'D':[
+    'XXXXXXXXXXX...','XXXXXXXXXXXX..','XX.........XX.','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX.........XX.',
+    'XXXXXXXXXXXX..','XXXXXXXXXXX...','..............','..............',
+  ],
+  'E':[
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','XX............','XX............',
+    'XX............','XX............','XX............','XXXXXXXXXXX...',
+    'XXXXXXXXXXX...','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','..............','..............',
+  ],
+  'F':[
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','XX............','XX............',
+    'XX............','XX............','XX............','XXXXXXXXXXX...',
+    'XXXXXXXXXXX...','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','..............','..............',
+  ],
+  'G':[
+    '..XXXXXXXXXX..','.XXXXXXXXXXXX.','XXX........XXX','XX............',
+    'XX............','XX............','XX............','XX....XXXXXXXX',
+    'XX....XXXXXXXX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XXX........XXX',
+    '.XXXXXXXXXXXX.','..XXXXXXXXXX..','..............','..............',
+  ],
+  'H':[
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XXXXXXXXXXXXXX',
+    'XXXXXXXXXXXXXX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'I':[
+    'XXXXXXXXXXXX..','XXXXXXXXXXXX..','...XX.XX......','....XXX.......',
+    '....XXX.......','....XXX.......','....XXX.......','....XXX.......',
+    '....XXX.......','....XXX.......','....XXX.......','....XXX.......',
+    '....XXX.......','....XXX.......','....XXX.......','...XX.XX......',
+    'XXXXXXXXXXXX..','XXXXXXXXXXXX..','..............','..............',
+  ],
+  'J':[
+    '....XXXXXXXX..','....XXXXXXXX..','........XX....','........XX....',
+    '........XX....','........XX....','........XX....','........XX....',
+    '........XX....','........XX....','........XX....','........XX....',
+    '........XX....','XX......XX....','XX......XX....','XXX....XXX....',
+    '.XXXXXXXX.....','..XXXXXX......','..............','..............',
+  ],
+  'K':[
+    'XX........XX..','XX.......XX...','XX......XX....','XX.....XX.....',
+    'XX....XX......','XX...XX.......','XX..XX........','XX.XX.........',
+    'XXXX..........','XXXXX.........','XX.XX.........','XX..XX........',
+    'XX...XX.......','XX....XX......','XX.....XX.....','XX......XX....',
+    'XX.......XX...','XX........XX..','..............','..............',
+  ],
+  'L':[
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','..............','..............',
+  ],
+  'M':[
+    'XX..........XX','XXX........XXX','XXXX......XXXX','XX.XX....XX.XX',
+    'XX..XX..XX..XX','XX...XXXX...XX','XX....XX....XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'N':[
+    'XX..........XX','XXX.........XX','XXXX........XX','XX.XX.......XX',
+    'XX..XX......XX','XX...XX.....XX','XX....XX....XX','XX....XX....XX',
+    'XX.....XX...XX','XX......XX..XX','XX.......XX.XX','XX........XXXX',
+    'XX.........XXX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'O':[
+    '..XXXXXXXXXX..','.XXXXXXXXXXXX.','XXX........XXX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XXX........XXX',
+    '.XXXXXXXXXXXX.','..XXXXXXXXXX..','..............','..............',
+  ],
+  'P':[
+    'XXXXXXXXXXXX..','XXXXXXXXXXXXX.','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX.........XX.','XXXXXXXXXXXXX.',
+    'XXXXXXXXXXXX..','XX............','XX............','XX............',
+    'XX............','XX............','XX............','XX............',
+    'XX............','XX............','..............','..............',
+  ],
+  'Q':[
+    '..XXXXXXXXXX..','.XXXXXXXXXXXX.','XXX........XXX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX...XX.....XX','XX....XX....XX','XX.....XX...XX','XXX.....XX.XXX',
+    '.XXXXXXXXXXXXX','..XXXXXXXXX.XX','..............','..............',
+  ],
+  'R':[
+    'XXXXXXXXXXXX..','XXXXXXXXXXXXX.','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX.........XX.','XXXXXXXXXXXXX.',
+    'XXXXXXXXXXXX..','XX...XX.......','XX....XX......','XX.....XX.....',
+    'XX......XX....','XX.......XX...','XX........XX..','XX.........XX.',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'S':[
+    '..XXXXXXXXXX..','.XXXXXXXXXXXX.','XXX........XXX','XX..........XX',
+    'XX............','XX............','XXX...........','.XXXXXXXXXX...',
+    '..XXXXXXXXXX..','...........XX.','............XX','............XX',
+    '............XX','............XX','XX..........XX','XXX........XXX',
+    '.XXXXXXXXXXXX.','..XXXXXXXXXX..','..............','..............',
+  ],
+  'T':[
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','......XX......',
+    '......XX......','......XX......','......XX......','......XX......',
+    '......XX......','......XX......','......XX......','......XX......',
+    '......XX......','......XX......','......XX......','......XX......',
+    '......XX......','......XX......','..............','..............',
+  ],
+  'U':[
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XXX........XXX',
+    '.XXXXXXXXXXXX.','..XXXXXXXXXX..','..............','..............',
+  ],
+  'V':[
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','.XX........XX.','.XX........XX.','..XX......XX..',
+    '..XX......XX..','...XX....XX...','...XX....XX...','....XX..XX....',
+    '....XX..XX....','.....XXXX.....','.....XXXX.....','......XX......',
+    '......XX......','......XX......','..............','..............',
+  ],
+  'W':[
+    'XX..........XX','XX..........XX','XX..........XX','XX..........XX',
+    'XX..........XX','XX..........XX','XX..........XX','XX....XX....XX',
+    'XX....XX....XX','XX...XXXX...XX','XX..XX..XX..XX','XX.XX....XX.XX',
+    'XXXX......XXXX','XXX........XXX','XX..........XX','..............',
+    '..............','..............','..............','..............',
+  ],
+  'X':[
+    'XX..........XX','.XX........XX.','..XX......XX..','...XX....XX...',
+    '....XX..XX....','.....XXXX.....','......XX......','......XX......',
+    '......XX......','......XX......','......XX......','.....XXXX.....',
+    '....XX..XX....','...XX....XX...','..XX......XX..','.XX........XX.',
+    'XX..........XX','XX..........XX','..............','..............',
+  ],
+  'Y':[
+    'XX..........XX','.XX........XX.','..XX......XX..','...XX....XX...',
+    '....XX..XX....','.....XXXX.....','......XX......','......XX......',
+    '......XX......','......XX......','......XX......','......XX......',
+    '......XX......','......XX......','......XX......','......XX......',
+    '......XX......','......XX......','..............','..............',
+  ],
+  'Z':[
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','............XX','...........XX.',
+    '..........XX..','.........XX...','........XX....','.......XX.....',
+    '......XX......','......XX......','.....XX.......','....XX........',
+    '...XX.........','..XX..........','.XX...........','XX............',
+    'XXXXXXXXXXXXXX','XXXXXXXXXXXXXX','..............','..............',
+  ],
+  ' ':Array(20).fill('..............'),
+};
+
+// ── RENDERER ─────────────────────────────────────────────────────────────
+function renderGlyph(rows, scale, fg, bg, hingeY) {
+  const w = FONT_W, h = FONT_H;
+  // canvas with padding so digit centers vertically in flap (40px tall area each half)
+  const cv = document.createElement('canvas');
+  cv.width = w * scale; cv.height = h * scale;
+  const ctx = cv.getContext('2d');
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(0,0,cv.width,cv.height); }
+  ctx.fillStyle = fg;
+  for (let y=0; y<h; y++) {
+    for (let x=0; x<w; x++) {
+      if (rows[y] && rows[y][x] === 'X') {
+        ctx.fillRect(x*scale, y*scale, scale, scale);
+      }
+    }
+  }
+  return cv;
+}
+
+// Render full flap face (84x120 scaled): centered glyph on dark cream
+const FG = '#f0d090', BG = '#16100a';
+function renderFlapFace(ch) {
+  const W = 84, H = 120;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = BG;
+  ctx.fillRect(0,0,W,H);
+  // cream slight gradient
+  ctx.fillStyle = FG;
+  const rows = (DIGITS[ch] || LETTERS[ch] || LETTERS[' ']);
+  const scale = 5; // 14*5=70 wide, 20*5=100 tall, fits with margin
+  const ox = Math.floor((W - FONT_W*scale)/2);
+  const oy = Math.floor((H - FONT_H*scale)/2);
+  for (let y=0; y<FONT_H; y++)
+    for (let x=0; x<FONT_W; x++)
+      if (rows[y] && rows[y][x] === 'X')
+        ctx.fillRect(ox + x*scale, oy + y*scale, scale, scale);
+  // subtle horizontal scanlines
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  for (let y=0; y<H; y+=2) ctx.fillRect(0, y, W, 1);
+  return cv;
+}
+
+// Render bottom half of a glyph drawn UPSIDE DOWN into a 84x60 canvas
+function renderFlippedBottom(ch) {
+  const W = 84, H = 60;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = FG;
+  const rows = (DIGITS[ch] || LETTERS[ch] || LETTERS[' ']);
+  const scale = 5;
+  const fullOy = Math.floor((120 - FONT_H*scale)/2); // 10
+  const ox = Math.floor((W - FONT_W*scale)/2);
+  for (let gy=0; gy<FONT_H; gy++) {
+    const yFull = fullOy + gy*scale;
+    if (yFull < 60) continue; // top half — skip
+    const yInBot = yFull - 60;          // 0..59 within bottom half
+    const yFlipped = H - yInBot - scale; // upside down
+    for (let gx=0; gx<FONT_W; gx++) {
+      if (rows[gy] && rows[gy][gx] === 'X')
+        ctx.fillRect(ox + gx*scale, yFlipped, scale, scale);
+    }
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  for (let y=0; y<H; y+=2) ctx.fillRect(0, y, W, 1);
+  return cv;
+}
+
+// ── FLAP STATE & ANIMATION (proper Solari single-panel) ─────────────────
+const flapStates = {}; // key=pos, value=current char
+
+function setFlap(flapEl, ch, animate=true) {
+  const pos = flapEl.dataset.pos;
+  const oldCh = flapStates[pos];
+  if (oldCh === ch) return;
+
+  const top = flapEl.querySelector('.top');
+  const bot = flapEl.querySelector('.bot');
+
+  // remove any existing panels
+  flapEl.querySelectorAll('.flip-panel').forEach(n => n.remove());
+
+  if (!animate || oldCh === undefined) {
+    const cvT = renderFlapFace(ch);
+    const cvB = renderFlapFace(ch);
+    top.innerHTML = ''; top.appendChild(cvT);
+    bot.innerHTML = ''; bot.appendChild(cvB);
+    flapStates[pos] = ch;
+    return;
+  }
+
+  // PROPER SOLARI MECHANISM:
+  // 1. Top half (background) is updated immediately to NEW top — but it's hidden
+  //    behind the falling panel until that panel passes 90°.
+  // 2. Bottom half (background) STAYS as OLD bottom for the entire animation —
+  //    only updated at the end (replaced by panel's back showing NEW bottom).
+  // 3. A single panel hinged at the middle rotates 0° → -180°.
+  //      • 0° → -90°: front face shows OLD top (panel covers top half).
+  //      • At -90° (edge-on): content swap to NEW bottom rendered upside-down.
+  //      • -90° → -180°: back face shown to viewer; CSS X-rotation mirrors
+  //         the upside-down content vertically → appears right-side up.
+  //      • At -180°: panel rests over bottom half showing NEW bottom.
+
+  // STEP 1: top background → NEW top (revealed as panel falls past 90°)
+  top.innerHTML = '';
+  top.appendChild(renderFlapFace(ch));
+
+  // STEP 2: bot stays OLD bottom — no change here.
+
+  // STEP 3: Build the flipping panel, initially showing OLD top.
+  const panel = document.createElement('div');
+  panel.className = 'flip-panel';
+  panel.appendChild(renderFlapFace(oldCh));   // 84x120 canvas, top:0 → top half visible
+  flapEl.appendChild(panel);
+
+  requestAnimationFrame(() => panel.classList.add('animate'));
+
+  // Midpoint swap: replace content with NEW bottom drawn upside-down (60px canvas)
+  setTimeout(() => {
+    panel.innerHTML = '';
+    panel.appendChild(renderFlippedBottom(ch));
+  }, 350);
+
+  // End of flip: update bot background to NEW bottom and remove panel.
+  setTimeout(() => {
+    bot.innerHTML = '';
+    bot.appendChild(renderFlapFace(ch));
+    panel.remove();
+  }, 700);
+
+  flapStates[pos] = ch;
+}
+
+// ── CLOCK LOGIC ──────────────────────────────────────────────────────────
+let curTime = 12*60 + 34; // minutes since midnight
+let runHandle = null;
+
+function updateClock(animate=true) {
+  const h = Math.floor(curTime/60) % 24;
+  const m = curTime % 60;
+  const hs = String(h).padStart(2,'0');
+  const ms = String(m).padStart(2,'0');
+  const flaps = document.querySelectorAll('#clockDemo .flap');
+  setFlap(flaps[0], hs[0], animate);
+  setFlap(flaps[1], hs[1], animate);
+  setFlap(flaps[2], ms[0], animate);
+  setFlap(flaps[3], ms[1], animate);
+  document.getElementById('timeLbl').textContent = `${hs}:${ms}`;
+}
+
+function tickOnce() {
+  curTime = (curTime + 1) % (24*60);
+  updateClock(true);
+}
+
+function toggleRun() {
+  const btn = document.getElementById('runBtn');
+  if (runHandle) {
+    clearInterval(runHandle); runHandle = null;
+    btn.textContent = '▶ RUN';
+  } else {
+    runHandle = setInterval(tickOnce, 1400);
+    btn.textContent = '⏸ STOP';
+  }
+}
+
+function randomTime() {
+  curTime = Math.floor(Math.random()*24*60);
+  updateClock(true);
+}
+
+// initial paint
+updateClock(false);
+
+// ── DIGIT ASSET ROW ──────────────────────────────────────────────────────
+const dRow = document.getElementById('digitRow');
+'0123456789'.split('').forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'asset-card';
+  // build a static flap showing digit d
+  const flap = document.createElement('div'); flap.className='flap';
+  flap.style.width='84px'; flap.style.height='120px';
+  const top = document.createElement('div'); top.className='top';
+  const bot = document.createElement('div'); bot.className='bot';
+  flap.appendChild(top); flap.appendChild(bot);
+  const cvT = renderFlapFace(d); top.appendChild(cvT);
+  const cvB = renderFlapFace(d); bot.appendChild(cvB);
+  card.appendChild(flap);
+  const lbl = document.createElement('div'); lbl.className='asset-label'; lbl.textContent=`Digit ${d}`;
+  card.appendChild(lbl);
+  dRow.appendChild(card);
+});
+
+// ── LETTER ASSET ROW ─────────────────────────────────────────────────────
+const lRow = document.getElementById('letterRow');
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
+  const card = document.createElement('div');
+  card.className = 'asset-card';
+  const flap = document.createElement('div'); flap.className='flap';
+  flap.style.width='56px'; flap.style.height='80px';
+  const top = document.createElement('div'); top.className='top';
+  const bot = document.createElement('div'); bot.className='bot';
+  flap.appendChild(top); flap.appendChild(bot);
+  // smaller scale render
+  const W=56,H=80;
+  const cv = document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle=BG; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=FG;
+  const rows = LETTERS[l];
+  const sc = 3; const ox=Math.floor((W-FONT_W*sc)/2), oy=Math.floor((H-FONT_H*sc)/2);
+  for (let y=0;y<FONT_H;y++) for (let x=0;x<FONT_W;x++)
+    if (rows[y][x]==='X') ctx.fillRect(ox+x*sc,oy+y*sc,sc,sc);
+  ctx.fillStyle='rgba(0,0,0,0.10)';
+  for (let y=0;y<H;y+=2) ctx.fillRect(0,y,W,1);
+
+  const cvT = cv;
+  const cvB = document.createElement('canvas'); cvB.width=W; cvB.height=H;
+  cvB.getContext('2d').drawImage(cv,0,0);
+  top.appendChild(cvT); bot.appendChild(cvB);
+  card.appendChild(flap);
+  const lbl = document.createElement('div'); lbl.className='asset-label'; lbl.textContent=l;
+  card.appendChild(lbl);
+  lRow.appendChild(card);
+});
+
+// ── BORDER PIECES ────────────────────────────────────────────────────────
+function makeBorderTile(rows, palette, scale) {
+  const cv = document.createElement('canvas');
+  cv.width = rows[0].length * scale; cv.height = rows.length * scale;
+  const ctx = cv.getContext('2d');
+  for (let y=0; y<rows.length; y++)
+    for (let x=0; x<rows[y].length; x++) {
+      const c = rows[y][x];
+      if (palette[c]) { ctx.fillStyle = palette[c]; ctx.fillRect(x*scale, y*scale, scale, scale); }
+    }
+  return cv;
+}
+
+const BPAL = { B:'#1a1208', D:'#2a1c0c', M:'#4a3018', L:'#6a4828', H:'#8a6038', G:'#aa7848' };
+
+const BORDER_TOP = [
+  'BBBBBBBBBBBBBBBB',
+  'DDDDDDDDDDDDDDDD',
+  'MMMMMMMMMMMMMMMM',
+  'MLLLLLLLLLLLLLLM',
+  'MLHHHHHHHHHHHHLM',
+  'MLHGGGGGGGGGGHLM',
+  'MLHGGGGGGGGGGHLM',
+  'MLHHHHHHHHHHHHLM',
+  'MLLLLLLLLLLLLLLM',
+  'MMMMMMMMMMMMMMMM',
+  'DDDDDDDDDDDDDDDD',
+  'BBBBBBBBBBBBBBBB',
+];
+const BORDER_SIDE = [
+  'BDMMLM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMLHM',
+  'BDMMLM',
+];
+const CORNER_TL = [
+  'BBBBBBBBBBBB',
+  'BDDDDDDDDDDD',
+  'BDMMMMMMMMMM',
+  'BDMLLLLLLLLL',
+  'BDMLHHHHHHHH',
+  'BDMLHGGGGGGG',
+  'BDMLHG......',
+  'BDMLHG......',
+  'BDMLHG......',
+  'BDMLHG......',
+  'BDMLHG......',
+  'BDMLHG......',
+];
+const RIVET = [
+  '..GG..',
+  '.GHHG.',
+  'GHHHHG',
+  'GHHHHG',
+  '.GHHG.',
+  '..GG..',
+];
+
+const bRow = document.getElementById('borderRow');
+[
+  ['Top Strip', BORDER_TOP, 6],
+  ['Side Rail', BORDER_SIDE, 6],
+  ['Corner (TL)', CORNER_TL, 6],
+  ['Brass Rivet', RIVET, 8],
+].forEach(([name, rows, sc]) => {
+  const card = document.createElement('div');
+  card.className = 'asset-card';
+  const cv = makeBorderTile(rows, BPAL, sc);
+  card.appendChild(cv);
+  const lbl = document.createElement('div'); lbl.className='asset-label'; lbl.textContent=name;
+  card.appendChild(lbl);
+  bRow.appendChild(card);
+});
+
+// Full assembled frame demo
+(function assembledFrame() {
+  const card = document.createElement('div');
+  card.className = 'asset-card';
+  card.style.background = '#0a0806';
+  const W = 280, H = 160;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle='#08060a'; ctx.fillRect(0,0,W,H);
+  // wooden frame: outer dark, inner highlight
+  ctx.fillStyle='#2a1c0c'; ctx.fillRect(0,0,W,12); ctx.fillRect(0,H-12,W,12);
+  ctx.fillRect(0,0,12,H); ctx.fillRect(W-12,0,12,H);
+  ctx.fillStyle='#4a3018'; ctx.fillRect(2,2,W-4,2); ctx.fillRect(2,H-4,W-4,2);
+  ctx.fillRect(2,2,2,H-4); ctx.fillRect(W-4,2,2,H-4);
+  ctx.fillStyle='#6a4828'; ctx.fillRect(4,4,W-8,2); ctx.fillRect(4,H-6,W-8,2);
+  ctx.fillRect(4,4,2,H-8); ctx.fillRect(W-6,4,2,H-8);
+  // brass rivets in corners
+  ctx.fillStyle='#aa7848';
+  [[8,8],[W-12,8],[8,H-12],[W-12,H-12]].forEach(([x,y])=>{
+    ctx.fillRect(x,y,4,4); ctx.fillRect(x-1,y+1,6,2); ctx.fillRect(x+1,y-1,2,6);
+  });
+  // label "FLAPS"
+  ctx.fillStyle='#aa7848';
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.fillText('FLAPS', 14, H-1);
+  card.appendChild(cv);
+  const lbl = document.createElement('div'); lbl.className='asset-label'; lbl.textContent='Assembled Frame';
+  card.appendChild(lbl);
+  bRow.appendChild(card);
+})();
+
+// ── DEMO FLAPS ────────────────────────────────────────────────────────────
+const demoFlap = document.getElementById('demoFlap');
+let demoIdx = 0;
+setFlap(demoFlap, '0', false);
+setInterval(() => {
+  demoIdx = (demoIdx + 1) % 10;
+  setFlap(demoFlap, String(demoIdx), true);
+}, 1100);
+
+const demoFlap2 = document.getElementById('demoFlap2');
+let demoIdx2 = 0;
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+setFlap(demoFlap2, 'A', false);
+setInterval(() => {
+  demoIdx2 = (demoIdx2 + 1) % ALPHA.length;
+  setFlap(demoFlap2, ALPHA[demoIdx2], true);
+}, 1100);
+</script>
+</body>
+</html>

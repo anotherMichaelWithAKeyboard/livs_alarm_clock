@@ -17,6 +17,8 @@ from ui.split_flap import SplitFlapDisplay
 from ui.pixel_border import PixelBorder
 from ui.alarm_panel import AlarmPanel
 from ui.seasonal_texture import SeasonalTexture
+from ui.background_manager import BackgroundManager
+from ui.settings_panel import SettingsPanel
 from services.ptv_api import PTVService
 from services.alarm_manager import AlarmManager
 from services.alarm_logic import AlarmConfig
@@ -102,17 +104,24 @@ class ClockApp:
         self.alarm_panel = AlarmPanel(self.width, self.height, self.alarm_manager, self.alarm_config, self.journey_planner)
         self._last_alarm_check = 0
 
-        # Slide-in state:
-        #   _panel_x  – current divider position in pixels (0 = closed, width = fully open)
-        #   _panel_target – snap destination after a swipe
-        #   _panel_was_open – whether the panel was open when the current touch began
-        #   _swipe_start – finger-down position, or None when not touching
-        #   _swipe_active – True once horizontal motion exceeds the dead-zone
-        self._panel_x      = 0.0
-        self._panel_target = 0.0
+        # Slide-in state — alarm panel (left edge, swipe right-to-open):
+        self._panel_x        = 0.0
+        self._panel_target   = 0.0
         self._panel_was_open = False
+        # Slide-in state — settings panel (right edge, swipe left-to-open):
+        self._settings_x        = 0.0
+        self._settings_target   = 0.0
+        self._settings_was_open = False
+        # Shared swipe tracking:
         self._swipe_start  = None
         self._swipe_active = False
+
+        # Background manager
+        self.bg_manager       = BackgroundManager(self.width, self.height)
+        self.current_background = self.config.get('display.background', 'None')
+        self.settings_panel   = SettingsPanel(
+            self.width, self.height, self.config, self._on_background_change
+        )
 
         # Clock settings
         self.clock = pygame.time.Clock()
@@ -196,9 +205,12 @@ class ClockApp:
         date_y = center_pos[1] + clock_half_height + padding
         surf.blit(date_surface, date_surface.get_rect(center=(self.width // 2, date_y)))
 
-        # Subtle left-edge tab hinting that swiping right opens the alarm panel
+        # Left-edge tab — swipe right opens alarm panel
         pygame.draw.rect(surf, self.accent_color,
                          pygame.Rect(0, self.height // 2 - 40, 6, 80), border_radius=3)
+        # Right-edge tab — swipe left opens settings
+        pygame.draw.rect(surf, self.accent_color,
+                         pygame.Rect(self.width - 6, self.height // 2 - 40, 6, 80), border_radius=3)
 
     def draw_commute_info(self, surf):
         """Draw commute information if available."""
@@ -229,10 +241,11 @@ class ClockApp:
                 continue
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                self._swipe_start    = event.pos
-                self._swipe_active   = False
-                self._panel_was_open = (self._panel_target >= self.width)
-                if not self._panel_was_open:
+                self._swipe_start       = event.pos
+                self._swipe_active      = False
+                self._panel_was_open    = (self._panel_target   >= self.width)
+                self._settings_was_open = (self._settings_target >= self.width)
+                if not self._panel_was_open and not self._settings_was_open:
                     self.photo_frame.register_activity()
 
             elif event.type == pygame.MOUSEMOTION and self._swipe_start is not None:
@@ -241,18 +254,26 @@ class ClockApp:
 
                 if self._panel_was_open and abs(dy) > abs(dx) and abs(dy) > 5:
                     self.alarm_panel.handle_scroll(-event.rel[1])
+                elif self._settings_was_open and abs(dy) > abs(dx) and abs(dy) > 5:
+                    self.settings_panel.handle_scroll(-event.rel[1])
                 elif abs(dx) > abs(dy) and abs(dx) > 15:
-                    # Load alarm data as soon as the opening swipe is recognised
-                    if not self._swipe_active and not self._panel_was_open and dx > 0:
-                        self.alarm_panel.load()
+                    if not self._swipe_active:
+                        if not self._panel_was_open and not self._settings_was_open and dx > 0:
+                            self.alarm_panel.load()
                     self._swipe_active = True
 
                     if self._panel_was_open:
-                        # Dragging to close: slide panel back left
-                        self._panel_x = max(0.0, min(self.width + dx, float(self.width)))
-                    else:
-                        # Dragging to open: slide panel in from left
+                        # Closing alarm: follow finger leftward
+                        self._panel_x = max(0.0, min(float(self.width) + dx, float(self.width)))
+                    elif not self._settings_was_open and dx > 0:
+                        # Opening alarm: drag in from left
                         self._panel_x = max(0.0, min(float(dx), float(self.width)))
+                    elif self._settings_was_open:
+                        # Closing settings: follow finger rightward
+                        self._settings_x = max(0.0, min(float(self.width) - dx, float(self.width)))
+                    elif dx < 0:
+                        # Opening settings: drag in from right
+                        self._settings_x = max(0.0, min(float(-dx), float(self.width)))
 
             elif event.type == pygame.MOUSEBUTTONUP and self._swipe_start is not None:
                 dx = event.pos[0] - self._swipe_start[0]
@@ -261,16 +282,23 @@ class ClockApp:
                 self._swipe_start = None
 
                 if total_move < 20:
-                    # Tap — forward to alarm panel if it is open
                     if self._panel_was_open:
                         if self.alarm_panel.handle_tap(event.pos):
                             self._panel_target = 0.0
+                    elif self._settings_was_open:
+                        self.settings_panel.handle_tap(event.pos)
                 elif self._swipe_active:
                     threshold = self.width * 0.35
                     if self._panel_was_open:
                         self._panel_target = 0.0 if dx < -threshold else float(self.width)
-                    else:
-                        self._panel_target = float(self.width) if dx > threshold else 0.0
+                    elif self._settings_was_open:
+                        self._settings_target = 0.0 if dx > threshold else float(self.width)
+                    elif dx > threshold:
+                        self._panel_target    = float(self.width)
+                        self._settings_target = 0.0
+                    elif -dx > threshold:
+                        self._settings_target = float(self.width)
+                        self._panel_target    = 0.0
 
                 self._swipe_active = False
 
@@ -283,6 +311,19 @@ class ClockApp:
             self._panel_x = self._panel_target
         else:
             self._panel_x += diff * 0.25
+
+    def _update_settings_animation(self):
+        """Ease _settings_x towards _settings_target when no active drag."""
+        if self._swipe_active:
+            return
+        diff = self._settings_target - self._settings_x
+        if abs(diff) < 1.5:
+            self._settings_x = self._settings_target
+        else:
+            self._settings_x += diff * 0.25
+
+    def _on_background_change(self, name):
+        self.current_background = name
 
     def update_theme(self):
         """Update theme based on current season"""
@@ -307,12 +348,14 @@ class ClockApp:
 
     def run(self):
         """Main application loop"""
-        clock_surf = pygame.Surface((self.width, self.height))
-        panel_surf = pygame.Surface((self.width, self.height))
+        clock_surf    = pygame.Surface((self.width, self.height))
+        panel_surf    = pygame.Surface((self.width, self.height))
+        settings_surf = pygame.Surface((self.width, self.height))
 
         while self.running:
             self.handle_events()
             self._update_panel_animation()
+            self._update_settings_animation()
 
             self.photo_frame.update()
             self.split_flap.update()
@@ -325,24 +368,37 @@ class ClockApp:
             # --- Draw clock to offscreen surface ---
             clock_surf.fill(self.bg_color)
             if not self.photo_frame.draw(clock_surf):
-                self.seasonal_texture.draw(clock_surf)
+                bg_surf = self.bg_manager.get_surface(self.current_background)
+                if bg_surf:
+                    clock_surf.blit(bg_surf, (0, 0))
+                else:
+                    self.seasonal_texture.draw(clock_surf)
                 self.pixel_border.draw_animated(clock_surf, self.frame_count)
                 self.draw_clock(clock_surf)
                 self.draw_commute_info(clock_surf)
 
-            # --- Composite: slide clock right, panel in from left ---
+            # --- Composite ---
             px = int(self._panel_x)
+            sx = int(self._settings_x)
 
-            if px <= 0:
-                self.screen.blit(clock_surf, (0, 0))
-            elif px >= self.width:
-                # Panel fully open — draw directly to avoid blitting panel_surf twice
-                self.alarm_panel.draw(self.screen)
+            if px > 0:
+                # Alarm panel: clock slides right, alarm in from left
+                if px >= self.width:
+                    self.alarm_panel.draw(self.screen)
+                else:
+                    self.alarm_panel.draw(panel_surf)
+                    self.screen.blit(panel_surf, (px - self.width, 0))
+                    self.screen.blit(clock_surf, (px, 0))
+            elif sx > 0:
+                # Settings panel: clock slides left, settings in from right
+                if sx >= self.width:
+                    self.settings_panel.draw(self.screen)
+                else:
+                    self.settings_panel.draw(settings_surf)
+                    self.screen.blit(settings_surf, (self.width - sx, 0))
+                    self.screen.blit(clock_surf, (-sx, 0))
             else:
-                # Mid-swipe: both views visible
-                self.alarm_panel.draw(panel_surf)
-                self.screen.blit(panel_surf, (px - self.width, 0))
-                self.screen.blit(clock_surf,  (px, 0))
+                self.screen.blit(clock_surf, (0, 0))
 
             pygame.display.flip()
             self.clock.tick(self.fps)

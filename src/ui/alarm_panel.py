@@ -10,24 +10,40 @@ from datetime import datetime, timedelta
 from services.alarm_logic import AlarmCalculator
 from services.nominatim import NominatimGeocoder
 
-BG        = (20,  20,  35)
-SURFACE   = (32,  32,  50)
-ITEM_BG   = (38,  38,  58)
-ITEM_SEL  = (55,  75, 130)
-BTN_GREEN = (45, 130,  45)
-BTN_GRAY  = (55,  55,  75)
-DIVIDER   = (45,  45,  65)
-TEXT      = (220, 220, 240)
-MUTED     = (130, 130, 155)
-ACCENT    = (120, 160, 255)
-WARN      = (255, 200,  60)
-KB_BG     = (12,  12,  22)
-KB_KEY    = (48,  48,  72)
-SUG_BG    = (18,  22,  40)
-SUG_CHIP  = (42,  52,  88)
+BG        = (12,  18,  22)
+SURFACE   = (20,  30,  36)
+SURFACE_B = (28,  42,  50)
+ITEM_BG   = (24,  36,  44)
+ITEM_SEL  = (30,  55,  65)
+TEXT      = (210, 225, 215)
+MUTED     = (100, 130, 118)
+DIVIDER   = (30,  46,  54)
+ACCENT    = ( 80, 185, 160)
+WARN      = (240, 195,  60)
 
-HEADER_H   = 50
-FOOTER_H   = 58
+STEP_COLORS = [
+    ( 74, 180, 100),   # Step 0 Destination  — Forest Green
+    ( 80, 185, 160),   # Step 1 Arrival      — Glowshroom Teal
+    (120, 130, 210),   # Step 2 Route        — Twilight Indigo
+    (200, 140,  80),   # Step 3 Preparation  — Warm Ember
+    (220, 190,  80),   # Step 4 Confirm      — Firefly Gold
+]
+
+KB_BG         = (  8,  12,  15)
+KB_KEY        = ( 28,  42,  52)
+KB_HI         = ( 42,  62,  76)
+KB_SHD        = ( 10,  16,  20)
+BTN_GREEN     = ( 40, 110,  75)
+BTN_GREEN_HI  = ( 60, 150, 100)
+BTN_GREEN_SHD = ( 20,  60,  40)
+BTN_GRAY      = ( 38,  52,  60)
+BTN_GRAY_HI   = ( 58,  76,  88)
+BTN_GRAY_SHD  = ( 16,  24,  30)
+SUG_BG        = ( 15,  22,  28)
+SUG_CHIP      = ( 30,  50,  60)
+
+HEADER_H   = 64
+FOOTER_H   = 64
 ITEM_H     = 68
 ITEM_GAP   = 6
 SUG_H      = 44
@@ -46,6 +62,62 @@ _KB_ROWS = [
 _KB_BOT_WIDTHS = [2, 1, 1, 4, 2]
 
 _DEBOUNCE_MS = 600
+
+
+# ── Module-level drawing helpers ──────────────────────────────────────────────
+
+def _darken(color, amount):
+    return tuple(max(0, c - amount) for c in color)
+
+
+def _ribbon_dim(color):
+    return tuple(max(0, c // 3) for c in color)
+
+
+def _draw_star(surf, cx, cy, r_outer, r_inner, color, width=0):
+    import math
+    points = []
+    for i in range(12):
+        angle = math.pi / 6 * i - math.pi / 2
+        r = r_outer if i % 2 == 0 else r_inner
+        points.append((int(cx + r * math.cos(angle)), int(cy + r * math.sin(angle))))
+    pygame.draw.polygon(surf, color, points, width)
+
+
+def _draw_icon_car(surf, rect, color):
+    cx, cy = rect.centerx, rect.centery
+    pygame.draw.polygon(surf, color, [
+        (cx - 18, cy + 6), (cx + 18, cy + 6), (cx + 18, cy - 2),
+        (cx + 10, cy - 10), (cx - 10, cy - 10), (cx - 18, cy - 2),
+    ])
+    pygame.draw.polygon(surf, _darken(color, 40), [
+        (cx - 8, cy - 8), (cx + 8, cy - 8), (cx + 12, cy - 3), (cx - 12, cy - 3),
+    ])
+    for wx in (cx - 10, cx + 10):
+        pygame.draw.circle(surf, KB_SHD, (wx, cy + 7), 5)
+        pygame.draw.circle(surf, MUTED,  (wx, cy + 7), 3)
+
+
+def _draw_icon_bus(surf, rect, color):
+    cx, cy = rect.centerx, rect.centery
+    pygame.draw.rect(surf, color, pygame.Rect(cx - 14, cy - 12, 28, 20), border_radius=3)
+    for wx in (cx - 10, cx - 2, cx + 6):
+        pygame.draw.rect(surf, _darken(color, 50), (wx, cy - 9, 5, 7))
+    for wx in (cx - 8, cx + 8):
+        pygame.draw.circle(surf, KB_SHD, (wx, cy + 10), 4)
+        pygame.draw.circle(surf, MUTED,  (wx, cy + 10), 2)
+    pygame.draw.rect(surf, _darken(color, 30), (cx - 12, cy - 14, 24, 4))
+
+
+def _draw_icon_cycle(surf, rect, color):
+    cx, cy = rect.centerx, rect.centery
+    pygame.draw.circle(surf, color, (cx - 11, cy + 4), 9, 2)
+    pygame.draw.circle(surf, color, (cx + 11, cy + 4), 9, 2)
+    pygame.draw.line(surf, color, (cx - 11, cy + 4), (cx,      cy - 8), 2)
+    pygame.draw.line(surf, color, (cx + 11, cy + 4), (cx,      cy - 8), 2)
+    pygame.draw.line(surf, color, (cx - 11, cy + 4), (cx + 11, cy + 4), 2)
+    pygame.draw.line(surf, color, (cx - 4,  cy - 8), (cx + 4,  cy - 8), 2)
+    pygame.draw.line(surf, color, (cx + 9,  cy - 4), (cx + 14, cy - 6), 2)
 _MIN_QUERY   = 3
 
 _ROUTE_TYPES = [(0, "Train"), (1, "Tram"), (2, "Bus")]
@@ -485,12 +557,12 @@ class AlarmPanel:
             if key == "DONE":
                 bg = BTN_GREEN
             elif key == "CANCEL":
-                bg = (90, 35, 35)
+                bg = (70, 28, 28)
             elif key == "BKSP":
-                bg = (60, 48, 48)
+                bg = (50, 36, 36)
             else:
                 bg = KB_KEY
-            pygame.draw.rect(surf, bg, rect, border_radius=5)
+            self._draw_key(surf, rect, bg)
 
             if key == "BKSP":
                 self._draw_bksp_icon(surf, rect)
@@ -778,14 +850,20 @@ class AlarmPanel:
         if sy + ITEM_H < 0 or sy > self.CH:
             return
         r = pygame.Rect(10, sy, self.W - 20, ITEM_H)
-        pygame.draw.rect(surf, ITEM_SEL if selected else ITEM_BG, r, border_radius=10)
+        step_color = STEP_COLORS[self._step]
+        pygame.draw.rect(surf, ITEM_SEL if selected else ITEM_BG, r, border_radius=6)
         if selected:
-            pygame.draw.rect(surf, ACCENT, r, 2, border_radius=10)
+            pygame.draw.rect(surf, step_color, r, 2, border_radius=6)
 
-        tx = r.x + 14
+        # Left ribbon
+        ribbon_r = pygame.Rect(r.x, r.y + 4, 4, r.h - 8)
+        pygame.draw.rect(surf, step_color if selected else _ribbon_dim(step_color),
+                         ribbon_r, border_radius=2)
+
+        tx = r.x + 20
         if checked is not None:
-            cb = pygame.Rect(r.x + 12, r.centery - 13, 26, 26)
-            pygame.draw.rect(surf, ACCENT if checked else BTN_GRAY, cb, border_radius=6)
+            cb = pygame.Rect(r.x + 20, r.centery - 13, 26, 26)
+            pygame.draw.rect(surf, step_color if checked else BTN_GRAY, cb, border_radius=6)
             if checked:
                 cs = self._f_icon20.render("✓", True, TEXT)
                 surf.blit(cs, cs.get_rect(center=cb.center))
@@ -816,46 +894,140 @@ class AlarmPanel:
     def _section(self, surf, raw_y, text):
         sy = self._sy(raw_y)
         if -20 < sy < self.CH:
-            surf.blit(self._f_small.render(text, True, MUTED), (16, sy))
+            col = STEP_COLORS[self._step]
+            ls  = self._f_small.render(text, True, col)
+            surf.blit(ls, (16, sy))
+            pygame.draw.line(surf, col,
+                             (16, sy + ls.get_height() + 1),
+                             (16 + ls.get_width(), sy + ls.get_height() + 1), 1)
 
     def _row_ctrl(self, surf, raw_y, label):
         r = pygame.Rect(10, self._sy(raw_y), self.W - 20, 44)
-        pygame.draw.rect(surf, ITEM_BG, r, border_radius=8)
-        ms = self._f_title.render("−", True, ACCENT)
+        self._draw_carved_button(surf, r, border_radius=4)
+        col = STEP_COLORS[self._step]
+        ms = self._f_title.render("-", True, col)
         surf.blit(ms, ms.get_rect(midleft=(r.x + 20, r.centery)))
         ls = self._f_label.render(label, True, TEXT)
         surf.blit(ls, ls.get_rect(center=r.center))
-        ps = self._f_title.render("+", True, ACCENT)
+        ps = self._f_title.render("+", True, col)
         surf.blit(ps, ps.get_rect(midright=(r.right - 20, r.centery)))
 
     # ── Header / footer ────────────────────────────────────────────────────
 
+    def _draw_star_strip(self, surf, y, h):
+        pygame.draw.rect(surf, SURFACE_B, (0, y, self.W, h))
+        for i, cx in enumerate(range(12, self.W - 8, 28)):
+            cy = y + h // 2
+            if i % 3 == 0:
+                pygame.draw.line(surf, TEXT,  (cx - 3, cy), (cx + 3, cy), 1)
+                pygame.draw.line(surf, TEXT,  (cx, cy - 3), (cx, cy + 3), 1)
+            else:
+                pygame.draw.rect(surf, MUTED, (cx, cy, 2, 2))
+
+    def _draw_progress_path(self, surf):
+        dot_r  = 5
+        glow_r = 8
+        path_y = HEADER_H - 14
+        gap    = (self.W - 40) // (N_STEPS - 1)
+        sx     = 20
+        pygame.draw.line(surf, DIVIDER,
+                         (sx, path_y), (sx + gap * (N_STEPS - 1), path_y), 2)
+        if self._step > 0:
+            pygame.draw.line(surf, STEP_COLORS[self._step],
+                             (sx, path_y), (sx + gap * self._step, path_y), 2)
+        for i in range(N_STEPS):
+            cx    = sx + i * gap
+            color = STEP_COLORS[i]
+            if i < self._step:
+                pygame.draw.circle(surf, color, (cx, path_y), dot_r)
+                pygame.draw.line(surf, BG, (cx - 3, path_y),     (cx - 1, path_y + 2), 1)
+                pygame.draw.line(surf, BG, (cx - 1, path_y + 2), (cx + 3, path_y - 2), 1)
+            elif i == self._step:
+                pygame.draw.circle(surf, SURFACE, (cx, path_y), glow_r)
+                pygame.draw.circle(surf, color,   (cx, path_y), glow_r,      2)
+                pygame.draw.circle(surf, color,   (cx, path_y), dot_r + 1,   2)
+                pygame.draw.circle(surf, TEXT,    (cx, path_y), dot_r - 1)
+            else:
+                pygame.draw.circle(surf, DIVIDER, (cx, path_y), dot_r, 2)
+
+    def _draw_carved_button(self, surf, rect, active=False, active_color=None, border_radius=6):
+        body = tuple(min(255, c + 20) for c in ITEM_SEL) if (active and active_color) else BTN_GRAY
+        pygame.draw.rect(surf, body, rect, border_radius=border_radius)
+        hi = BTN_GREEN_HI  if (active and active_color == BTN_GREEN) else BTN_GRAY_HI
+        sh = BTN_GREEN_SHD if (active and active_color == BTN_GREEN) else BTN_GRAY_SHD
+        br = border_radius
+        pygame.draw.line(surf, hi, (rect.x + br,    rect.y),          (rect.right - br, rect.y),          2)
+        pygame.draw.line(surf, sh, (rect.x + br,    rect.bottom - 1), (rect.right - br, rect.bottom - 1), 2)
+        pygame.draw.line(surf, hi, (rect.x,          rect.y + br),    (rect.x,          rect.bottom - br), 1)
+        pygame.draw.line(surf, sh, (rect.right,      rect.y + br),    (rect.right,      rect.bottom - br), 1)
+        if active and active_color:
+            pygame.draw.rect(surf, active_color, rect, 2, border_radius=border_radius)
+
+    def _draw_key(self, surf, rect, bg_color):
+        pygame.draw.rect(surf, bg_color, rect, border_radius=3)
+        hi = tuple(min(255, c + 30) for c in bg_color)
+        sh = tuple(max(0,   c - 20) for c in bg_color)
+        pygame.draw.line(surf, hi, (rect.x + 3,     rect.y + 1),      (rect.right - 4, rect.y + 1),      1)
+        pygame.draw.line(surf, hi, (rect.x + 1,     rect.y + 3),      (rect.x + 1,     rect.bottom - 4), 1)
+        pygame.draw.line(surf, sh, (rect.x + 3,     rect.bottom - 2), (rect.right - 4, rect.bottom - 2), 1)
+        pygame.draw.line(surf, sh, (rect.right - 2, rect.y + 3),      (rect.right - 2, rect.bottom - 4), 1)
+
+    def _draw_split_flap(self, surf, hh, mm, cy):
+        panel_w = 110
+        panel_h = 90
+        gap     = 18
+        panel_y = cy - panel_h // 2
+        panels  = [
+            (f"{hh:02d}", self.W // 2 - gap // 2 - panel_w),
+            (f"{mm:02d}", self.W // 2 + gap // 2),
+        ]
+        for digit_str, px in panels:
+            pr = pygame.Rect(px, panel_y, panel_w, panel_h)
+            pygame.draw.rect(surf, (8, 12, 16), pr)
+            pygame.draw.rect(surf, (38, 52, 62), pr, 3)
+            pygame.draw.line(surf, (52, 72, 84), (pr.x, pr.y),      (pr.right, pr.y),      1)
+            pygame.draw.line(surf, (52, 72, 84), (pr.x, pr.y),      (pr.x,     pr.bottom), 1)
+            pygame.draw.line(surf, (4,  6,  8),  (pr.x, pr.bottom), (pr.right, pr.bottom), 1)
+            pygame.draw.line(surf, (4,  6,  8),  (pr.right, pr.y),  (pr.right, pr.bottom), 1)
+            ds = self._f_big.render(digit_str, True, WARN)
+            surf.blit(ds, ds.get_rect(center=pr.center))
+            mid_y = pr.centery
+            pygame.draw.line(surf, (4,  6,  8),  (pr.x + 3, mid_y),     (pr.right - 3, mid_y),     2)
+            pygame.draw.line(surf, (52, 72, 84), (pr.x + 3, mid_y + 2), (pr.right - 3, mid_y + 2), 1)
+        col_x = self.W // 2 - gap // 2 + 2
+        for dy in (-14, 10):
+            pygame.draw.rect(surf, WARN, (col_x, cy + dy, 6, 8))
+
     def _draw_header(self, surf):
         pygame.draw.rect(surf, SURFACE, (0, 0, self.W, HEADER_H))
-        pygame.draw.line(surf, DIVIDER, (0, HEADER_H), (self.W, HEADER_H))
+        self._draw_star_strip(surf, y=0, h=14)
+        pygame.draw.line(surf, DIVIDER, (0, 14), (self.W, 14), 1)
         t = self._f_title.render(STEP_NAMES[self._step], True, TEXT)
-        surf.blit(t, t.get_rect(center=(self.W // 2, HEADER_H // 2 - 4)))
-        dot_r, gap = 4, 14
-        total = N_STEPS * dot_r * 2 + (N_STEPS - 1) * gap
-        sx = (self.W - total) // 2
-        for i in range(N_STEPS):
-            cx = sx + i * (dot_r * 2 + gap) + dot_r
-            pygame.draw.circle(surf, ACCENT if i == self._step else MUTED, (cx, HEADER_H - 8), dot_r)
+        surf.blit(t, t.get_rect(midleft=(16, 28)))
+        self._draw_progress_path(surf)
+        pygame.draw.line(surf, STEP_COLORS[self._step], (0, HEADER_H), (self.W, HEADER_H), 2)
 
     def _draw_footer(self, surf):
         fy = self.H - FOOTER_H
         pygame.draw.rect(surf, SURFACE, (0, fy, self.W, FOOTER_H))
-        pygame.draw.line(surf, DIVIDER, (0, fy), (self.W, fy))
+        pygame.draw.line(surf, STEP_COLORS[self._step], (0, fy), (self.W, fy), 2)
         bw = self.W // 3
         bh = FOOTER_H - 16
         by = fy + 8
-        pygame.draw.rect(surf, BTN_GRAY, (10, by, bw - 14, bh), border_radius=8)
+        back_r = pygame.Rect(10, by, bw - 14, bh)
+        self._draw_carved_button(surf, back_r, border_radius=4)
         bl = self._f_label.render("Cancel" if self._step == 0 else "Back", True, TEXT)
-        surf.blit(bl, bl.get_rect(center=(bw // 2, by + bh // 2)))
-        ok_col = BTN_GREEN if self._can_advance() else BTN_GRAY
-        pygame.draw.rect(surf, ok_col, (self.W - bw + 4, by, bw - 14, bh), border_radius=8)
-        nl = self._f_label.render("Save" if self._step == N_STEPS - 1 else "Next →", True, TEXT)
-        surf.blit(nl, nl.get_rect(center=(self.W - bw // 2, by + bh // 2)))
+        surf.blit(bl, bl.get_rect(center=back_r.center))
+        next_r = pygame.Rect(self.W - bw + 4, by, bw - 14, bh)
+        can_go = self._can_advance()
+        self._draw_carved_button(surf, next_r, active=can_go,
+                                  active_color=BTN_GREEN if can_go else None, border_radius=4)
+        nl = self._f_label.render("Save" if self._step == N_STEPS - 1 else "Next", True, TEXT)
+        surf.blit(nl, nl.get_rect(center=next_r.center))
+        if self._step < N_STEPS - 1:
+            arx, ary = next_r.right - 14, next_r.centery
+            pygame.draw.line(surf, TEXT, (arx - 4, ary - 4), (arx, ary), 2)
+            pygame.draw.line(surf, TEXT, (arx - 4, ary + 4), (arx, ary), 2)
 
     # ── Step renderers ─────────────────────────────────────────────────────
 
@@ -882,28 +1054,32 @@ class AlarmPanel:
 
     def _draw_arrival(self, surf):
         cx = self.W // 2
-        ts = self._f_big.render(f"{self._arr_h:02d}:{self._arr_m:02d}", True, WARN)
-        surf.blit(ts, ts.get_rect(center=(cx, self._sy(120))))
+        self._draw_split_flap(surf, self._arr_h, self._arr_m, self._sy(120))
         for col_x, tag in ((cx - 130, "hour"), (cx + 130, "min")):
             for raw_y, lbl in ((30, "▲"), (175, "▼")):
                 r = pygame.Rect(col_x - 45, self._sy(raw_y), 90, 44)
-                pygame.draw.rect(surf, ITEM_BG, r, border_radius=8)
-                pygame.draw.rect(surf, DIVIDER,  r, 1, border_radius=8)
-                s = self._f_label.render(lbl, True, ACCENT)
+                self._draw_carved_button(surf, r, border_radius=8)
+                s = self._f_label.render(lbl, True, STEP_COLORS[1])
                 surf.blit(s, s.get_rect(center=r.center))
             tl = self._f_small.render(tag, True, MUTED)
             surf.blit(tl, tl.get_rect(center=(col_x, self._sy(228))))
         self._section(surf, 244, "TRANSPORT MODE")
-        modes = [("drive", "Drive"), ("public_transport", "Public Transport"), ("cycle", "Cycle")]
+        modes_cfg = [
+            ("drive",            "Drive",   _draw_icon_car),
+            ("public_transport", "Transit", _draw_icon_bus),
+            ("cycle",            "Cycle",   _draw_icon_cycle),
+        ]
         bw = (self.W - 60) // 3
-        for i, (mode, name) in enumerate(modes):
-            br = pygame.Rect(30 + i * bw, self._sy(262), bw - 4, 44)
+        for i, (mode, name, icon_fn) in enumerate(modes_cfg):
+            br  = pygame.Rect(30 + i * bw, self._sy(262), bw - 4, 44)
             sel = self._transport == mode
-            pygame.draw.rect(surf, ITEM_SEL if sel else ITEM_BG, br, border_radius=8)
-            if sel:
-                pygame.draw.rect(surf, ACCENT, br, 2, border_radius=8)
-            ns = self._f_body.render(name, True, TEXT)
-            surf.blit(ns, ns.get_rect(center=br.center))
+            self._draw_carved_button(surf, br, active=sel,
+                                      active_color=STEP_COLORS[1] if sel else None,
+                                      border_radius=4)
+            icon_rect = pygame.Rect(br.x + 4, br.y, 36, br.h)
+            icon_fn(surf, icon_rect, TEXT if sel else MUTED)
+            ns = self._f_small.render(name, True, TEXT if sel else MUTED)
+            surf.blit(ns, ns.get_rect(midleft=(br.x + 42, br.centery)))
         self._section(surf, 320, "ESTIMATED JOURNEY TIME")
         self._row_ctrl(surf, 338, f"{self._journey_mins} min")
 
@@ -1007,13 +1183,38 @@ class AlarmPanel:
             self._compute_summary()
         s  = self._summary
         cx = self.W // 2
-        al = self._f_small.render("ALARM", True, MUTED)
-        surf.blit(al, al.get_rect(center=(cx, self._sy(18))))
+
+        # Glow panel behind alarm time
+        glow_r = pygame.Rect(cx - 140, self._sy(10), 280, 100)
+        pygame.draw.rect(surf, SURFACE_B, glow_r, border_radius=6)
+        pygame.draw.rect(surf, STEP_COLORS[4], glow_r, 2, border_radius=6)
+        pygame.draw.rect(surf, tuple(min(255, c + 15) for c in SURFACE_B),
+                         glow_r.inflate(-4, -4), 1, border_radius=4)
+
+        al = self._f_small.render("ALARM", True, STEP_COLORS[4])
+        surf.blit(al, al.get_rect(center=(cx, self._sy(22))))
         at = self._f_big.render(s["alarm_time"].strftime("%H:%M"), True, WARN)
-        surf.blit(at, at.get_rect(center=(cx, self._sy(82))))
-        sl = self._f_label.render(str(s["sleep_hours"]) + "h  " + str(s["sleep_minutes"]) + "m of sleep", True, ACCENT)
+        surf.blit(at, at.get_rect(center=(cx, self._sy(72))))
+
+        # Decorative 6-point stars around the panel
+        star_positions = [
+            (glow_r.x - 16,     glow_r.y + 10),
+            (glow_r.right + 16, glow_r.y + 10),
+            (glow_r.x - 20,     glow_r.centery),
+            (glow_r.right + 20, glow_r.centery),
+            (glow_r.x + 20,     glow_r.bottom + 10),
+            (glow_r.right - 20, glow_r.bottom + 10),
+        ]
+        for sx, sy in star_positions:
+            _draw_star(surf, sx, sy, r_outer=8,  r_inner=4, color=STEP_COLORS[4])
+        for sx, sy in star_positions:
+            _draw_star(surf, sx + 14, sy - 8, r_outer=4, r_inner=2, color=MUTED)
+
+        sl = self._f_label.render(
+            str(s["sleep_hours"]) + "h  " + str(s["sleep_minutes"]) + "m of sleep", True, ACCENT)
         surf.blit(sl, sl.get_rect(center=(cx, self._sy(148))))
-        dep_str = "Depart " + s["departure_time"].strftime("%H:%M") + "  ·  " + str(self._journey_mins) + " min journey"
+        dep_str = ("Depart " + s["departure_time"].strftime("%H:%M") +
+                   "  ·  " + str(self._journey_mins) + " min journey")
         dl = self._f_small.render(dep_str, True, MUTED)
         surf.blit(dl, dl.get_rect(center=(cx, self._sy(182))))
         sn_lbl = self._f_small.render("PLANNED SNOOZES", True, MUTED)
@@ -1021,6 +1222,7 @@ class AlarmPanel:
         self._row_ctrl(surf, 230, str(self._snooze_count) + "  snooze(s)")
         self._row_ctrl(surf, 285, str(self._snooze_dur) + " min / snooze")
         if s["fluffer_minutes"] or s["snooze_buffer_minutes"]:
-            info = "Prep: " + str(s["fluffer_minutes"]) + " min  ·  Snooze buffer: " + str(s["snooze_buffer_minutes"]) + " min"
+            info = ("Prep: " + str(s["fluffer_minutes"]) +
+                    " min  ·  Snooze buffer: " + str(s["snooze_buffer_minutes"]) + " min")
             ils = self._f_small.render(info, True, MUTED)
             surf.blit(ils, ils.get_rect(center=(cx, self._sy(342))))

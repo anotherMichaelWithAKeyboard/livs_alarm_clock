@@ -8,7 +8,7 @@
     {
       "name": "Mika's",
       "address": "Mika's",
-      "count": 1
+      "count": 2
     },
     {
       "name": "6 Donne Street, Coburg, VIC 3058",
@@ -38,16 +38,18 @@
   ],
   "plan": {
     "destination": "Mika's",
-    "start_location": "Home",
+    "start_location": "56C Gadd Street, Northcote, VIC 3070",
     "arrival_time": "08:00",
     "transport_mode": "public_transport",
     "journey_minutes": 0,
     "selected_departure": null,
     "fluffer_selected": [
+      "Wash hair",
+      "Breakfast",
       "Get dressed"
     ],
     "snooze_count": 0,
     "snooze_duration": 9,
-    "alarm_time": "07:50"
+    "alarm_time": "07:00"
   }
 }

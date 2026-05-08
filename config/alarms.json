@@ -1,7 +1,7 @@
 [
   {
     "hour": 7,
-    "minute": 50,
+    "minute": 0,
     "sound": "default.mp3",
     "enabled": true,
     "skip_weekends": false,

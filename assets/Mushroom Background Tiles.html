@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Background Tiles — Seasonal & Patterns</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Press Start 2P',monospace; background:#ede8d5; padding:24px 36px 60px; }
+  h1 { font-size:11px; color:#2a1604; letter-spacing:2px; margin-bottom:8px; }
+  .sub { font-size:5px; color:#907050; letter-spacing:2px; margin-bottom:24px; }
+
+  .section { margin-bottom:34px; }
+  .sec-title { font-size:8px; color:#4a2808; letter-spacing:3px; margin-bottom:10px; }
+  .sec-sub { font-size:4.5px; color:#907050; margin-bottom:14px; opacity:.7; }
+
+  .tile-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:18px; }
+  .tile-card { background:#fff; border:1px solid #c8b88a; border-radius:4px; overflow:hidden; }
+  .tile-preview {
+    height:160px;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+  }
+  .tile-meta { padding:8px 10px; border-top:1px solid #e0d8b8; font-size:4.5px; color:#5a3808; line-height:1.7; letter-spacing:1px; }
+  .tile-meta b { color:#2a1604; font-size:5px; }
+
+  .controls { display:flex; gap:8px; flex-wrap:wrap; padding:8px 10px; background:#f5edd0; border-top:1px solid #e0d8b8; }
+  .controls button {
+    font-family:'Press Start 2P',monospace; font-size:4.5px;
+    border:1px solid #b8a060; background:#fff; color:#3a2008;
+    padding:5px 8px; cursor:pointer; border-radius:2px;
+  }
+  .controls button:hover { background:#f0d090; }
+
+  .scale-demo {
+    margin-top:6px; padding:14px; border-radius:4px;
+    background:#2a1604; color:#f0d090;
+  }
+  .demo-strip { display:grid; grid-template-columns:repeat(8,1fr); gap:0; height:80px; }
+  .demo-strip canvas { width:100%; height:100%; image-rendering:pixelated; }
+</style>
+</head>
+<body>
+
+<h1>🍂 SEASONAL BACKGROUND TILES</h1>
+<div class="sub">PIXEL ART · TILEABLE · INFINITELY SCALABLE GRID</div>
+
+<div class="section">
+  <div class="sec-title">🌸 Spring — Flower Meadow</div>
+  <div class="sec-sub">Pink blossoms scattered across a soft green base</div>
+  <div class="tile-grid" id="spring-grid"></div>
+</div>
+
+<div class="section">
+  <div class="sec-title">☀️ Summer — Beach Sand</div>
+  <div class="sec-sub">Warm sand with shells and pebbles</div>
+  <div class="tile-grid" id="summer-grid"></div>
+</div>
+
+<div class="section">
+  <div class="sec-title">🍂 Autumn — Brown Leaves</div>
+  <div class="sec-sub">Fallen leaves layered on a forest floor</div>
+  <div class="tile-grid" id="autumn-grid"></div>
+</div>
+
+<div class="section">
+  <div class="sec-title">❄️ Winter — Snowflakes</div>
+  <div class="sec-sub">Drifting snow over a pale blue ground</div>
+  <div class="tile-grid" id="winter-grid"></div>
+</div>
+
+<div class="section">
+  <div class="sec-title">✨ Extra Patterns</div>
+  <div class="sec-sub">Mushroom forest floor · Mossy stone · Starry sky · Wood planks</div>
+  <div class="tile-grid" id="extra-grid"></div>
+</div>
+
+<script>
+// ─── RENDERER ─────────────────────────────────────────────────────────
+function renderTile(rows, pal, scale) {
+  const w = rows[0].length, h = rows.length;
+  const cv = document.createElement('canvas');
+  cv.width = w * scale; cv.height = h * scale;
+  const ctx = cv.getContext('2d');
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const c = rows[y][x];
+      if (c !== '.' && pal[c]) {
+        ctx.fillStyle = pal[c];
+        ctx.fillRect(x*scale, y*scale, scale, scale);
+      }
+    }
+  return cv;
+}
+
+// Convert tile canvas to data URL for CSS background-image (perfectly tileable)
+function tileToDataUrl(rows, pal, scale) {
+  return renderTile(rows, pal, scale).toDataURL();
+}
+
+// ─── TILE DEFINITIONS (each 16×16 pixels for clean tiling) ────────────
+
+// SPRING — flower meadow
+const T_SPRING_A = [
+  'gggggggggggggggg',
+  'ggGgggggggggGggg',
+  'gGFGggggggGFGggg',
+  'ggGgggFggggGgggF',
+  'gggggFFFggggggFF',
+  'ggggggFggggggggF',
+  'ggggggggGgggggGg',
+  'gggggggGFGgggGFG',
+  'ggGggggGgGggggGg',
+  'gGFGggggggggFggg',
+  'ggGgggggggFFFggg',
+  'gggggggggggFgggg',
+  'ggggGgggggggggGg',
+  'gggGFGggggggGFGg',
+  'ggggGggggggggGgg',
+  'gggggggggggggggg',
+];
+const T_SPRING_B = [
+  'gggggGgggggggggg',
+  'ggggGFGgggggGggg',
+  'ggGggGggggggFggG',
+  'gGFGgggggFggggGF',
+  'ggGgggggFFFggggG',
+  'gggggggggFggggGg',
+  'ggFggggggggggGFG',
+  'gFFFgggggggggGgg',
+  'ggFggggGggggggGg',
+  'gggggggGFGgggFGg',
+  'gggggggGgGgggggg',
+  'ggGggggggggggGgg',
+  'gGFGggggGggggFGg',
+  'ggGggggGFGggggGg',
+  'gggFggggGgggggGg',
+  'ggFFFggggggggFgg',
+];
+
+// SUMMER — beach sand with pebbles & shells
+const T_SUMMER_A = [
+  'sssssssssspsssss',
+  'sssspssssssssssp',
+  'sssssssssssssss.',  // tiny gap = darker grain
+  'sspsssssssssssss',
+  'ssssssssscsssspp',
+  'sssssssssscssspS',
+  'sssssspssssssssS',
+  'sssssssssssssspp',
+  'spssssssssssssss',
+  'sssssssssssspsss',
+  'ssssspsssssssssp',
+  'sssssssscssssss.',
+  'ssssssssscsssscS',
+  'sspssssssssssccS',
+  'ssssssssssssssss',
+  'sssssspsssspssss',
+];
+const T_SUMMER_B = [
+  'ssssssssssssssss',
+  'spsssssssspsssss',
+  'ssssssssssssssss',
+  'ssssssssscsssspp',
+  'sspssssssccsssss',
+  'ssssssssssssssss',
+  'sssssspssssssspS',
+  'ssssssssssssssss',
+  'spssssssssscsspp',
+  'ssssssssssscssss',
+  'sssssssssssssss.',
+  'ssssspsssssssssp',
+  'ssssssssspsssscS',
+  'ssssssssssssscss',
+  'sssspssssssssscS',
+  'ssssssssssssssss',
+];
+
+// AUTUMN — brown leaves
+const T_AUTUMN_A = [
+  'dddddLLddddddddd',
+  'dddLLLLLddddLLdd',
+  'ddLLlLLLddLLlLLd',
+  'dddLLLddddLLLLLd',
+  'ddddLddddddLLddd',
+  'ddddddddddLLdddd',
+  'dddLLdddddddLLdd',
+  'ddLLLLddddddLlLd',
+  'ddLlLLdddddLLLdd',
+  'dddLLddddddLLddd',
+  'ddddddLLddddddLL',
+  'dddddLLLLddddLLL',
+  'ddddLLlLLdddLLlL',
+  'dddddLLLddddLLLL',
+  'ddddddLddddddLdd',
+  'dddddddddddddddd',
+];
+const T_AUTUMN_B = [
+  'ddddddddLLddddLL',
+  'dddLLddLlLLddLLL',
+  'ddLlLLdLLLddddLL',
+  'ddLLLLdddLddddLd',
+  'dddLLdddddddddDd',
+  'ddddDdLLLddddDdd',
+  'dddDDLlLLddDDddd',
+  'ddDDdLLLddDDdddd',
+  'ddDdddLddDdddLLd',
+  'dDdddddddddddLlL',
+  'dddLLddddddLLLLL',
+  'ddLLLLddddddLLLd',
+  'ddLlLLdddDddddDd',
+  'dddLLdddDDddddDD',
+  'ddddddddDDddddDD',
+  'ddddddddDdddddDd',
+];
+
+// WINTER — snowflakes
+const T_WINTER_A = [
+  'wwwwwwwwwwwwwwww',
+  'wwwSwwwwwwwwSwww',
+  'wSSSSwwwwwwSSSSw',
+  'wwSwSwwwwwwSwSww',
+  'wwwwwwwSwwwwwwww',
+  'wwwwwSSSSwwwwSww',
+  'wwwwwwSwSwwwSSSS',
+  'wwwwwwwwwwwwSwSw',
+  'wwwSwwwwwwwwwwww',
+  'wwSSSSwwwwSwwwww',
+  'wwwSwSwwSSSSwwww',
+  'wwwwwwwwSwSwwwww',
+  'wwwwwwSwwwwwwwwS',
+  'wwwwSSSSwwwwwSSS',
+  'wwwwwSwSwwwwwwSw',
+  'wwwwwwwwwwwwwwww',
+];
+const T_WINTER_B = [
+  'wwwwwSwwwwwwwwww',
+  'wwwwSSSSwwwSwwww',
+  'wwwwwSwSwSSSSwww',
+  'wwwwwwwwwSwSwwww',
+  'wwSwwwwwwwwwwSww',
+  'SSSSwwwwwSwSSSSw',
+  'wSwSwwwwSSSSwSwS',
+  'wwwwwwwwwSwSwwww',
+  'wwwwwwSwwwwwwwww',
+  'wwwwSSSSwwwwwSww',
+  'wwwwwSwSwwwSSSSw',
+  'wwwwwwwwwwwwSwSw',
+  'wSwwwwwSwwwwwwww',
+  'SSSSwSSSSwwwwSww',
+  'wSwSwwSwSwwwSSSS',
+  'wwwwwwwwwwwwwSwS',
+];
+
+// MUSHROOM FOREST FLOOR — moss + tiny mushrooms
+const T_FOREST = [
+  'mmmmmmmmmmmmmmmm',
+  'mMmmmmmmmmmmmMmm',
+  'mmmmmmmRRmmmmmmm',
+  'mmmMmmRRRRmmmMmm',
+  'mmmmmmrRRrmmmmmm',
+  'mmmmmmmSSmmmmmmM',
+  'mMmmmmmmmmmmmmmm',
+  'mmmmmRRmmmmmmmmm',
+  'mmmmRRRRmmmMmmmm',
+  'mmmmrRRrmmmmmmmm',
+  'mmmmmSSmmmmmmRRm',
+  'mmMmmmmmmmmmRRRR',
+  'mmmmmmmmmmmmrRRr',
+  'mmmmmmmMmmmmmSSm',
+  'mmmmmmmmmmmmmmmm',
+  'mmMmmmmmmmmmmMmm',
+];
+
+// MOSSY STONE
+const T_STONE = [
+  'GGGGGGGGGGGGGGGG',
+  'GsssssGsssssGsss',
+  'GsdddsGsdddsGsdd',
+  'GsdddsGsdddsGsdd',
+  'GsdddsGsdddsGsdd',
+  'GssssGGGsssGsdds',
+  'GGGGGsdddssssGGG',
+  'sssssGsdddsGssss',
+  'sdddsGsdddsGsddd',
+  'sdddsGGsssGGsddd',
+  'sdddsGsssssGsddd',
+  'sssssGsdddsGssss',
+  'GGGGGsdddsGGGGGG',
+  'GsssssdddsGsssss',
+  'GsdddsssssGsdddd',
+  'GsdddsGGGGGsdddd',
+];
+
+// STARRY SKY
+const T_SKY = [
+  'NNNNNNNNNNNNNNNN',
+  'NNNNSNNNNNNNNNNN',
+  'NNNNNNNNNNSNNNNN',
+  'NNSNNNNNNNNNNNNN',
+  'NNNNNNNNNSNNNNSN',
+  'NNNNNNSNNNNNNNNN',
+  'NSNNNNNNNNNNSNNN',
+  'NNNNNNNNNNNNNNNN',
+  'NNNNSNNNNSNNNNNN',
+  'NNNNNNNNNNNNNNSN',
+  'NNNSNNNNNNNNNNNN',
+  'NNNNNNNNSNNNNNNN',
+  'NNNNNNSNNNNNSNNN',
+  'NSNNNNNNNNNNNNNN',
+  'NNNNNNNNSNNNNNNN',
+  'NNNNNSNNNNNNSNNN',
+];
+
+// WOOD PLANKS
+const T_WOOD = [
+  'wwwwwwwwwwwwwwww',
+  'wPPPPPPPPPPPPPPw',
+  'wPwwwwwwwwwwwwPw',
+  'wPwppppPPPpppwPw',
+  'wPwwwwwwwwwwwwPw',
+  'wPPPPPPPPPPPPPPw',
+  'wwwwwwwwwwwwwwww',
+  'PPPPPPPPPPPPPPPP',
+  'PwwwwwwwwwwwwwwP',
+  'PwPpppPwwppPwwwP',
+  'PwwwwwwwwwwwwwwP',
+  'PPPPPPPPPPPPPPPP',
+  'wwwwwwwwwwwwwwww',
+  'wPPPPPPPPPPPPPPw',
+  'wPwwppPwppPwwwPw',
+  'wPPPPPPPPPPPPPPw',
+];
+
+// ─── PALETTES ─────────────────────────────────────────────────────────
+const PAL_SPRING = { g:'#a0d480', G:'#80c060', F:'#f088b8' };
+const PAL_SPRING_B = { g:'#a0d480', G:'#88c870', F:'#e878a8' };
+const PAL_SPRING_C = { g:'#b8e090', G:'#80c060', F:'#f0c050' };
+
+const PAL_SUMMER = { s:'#f0d890', p:'#c89860', S:'#f898a0', c:'#a8b8c8' };
+const PAL_SUMMER_B = { s:'#f0d890', p:'#c89860', S:'#e8a890', c:'#909caa' };
+const PAL_SUMMER_C = { s:'#f8e8a8', p:'#d0a070', S:'#f8c890', c:'#b0c0d0' };
+
+const PAL_AUTUMN = { d:'#5a3818', L:'#c85020', l:'#883010', D:'#a04018' };
+const PAL_AUTUMN_B = { d:'#5a3818', L:'#e07820', l:'#a85008', D:'#a85018' };
+const PAL_AUTUMN_C = { d:'#4a2810', L:'#a83020', l:'#601808', D:'#883808' };
+
+const PAL_WINTER = { w:'#d8e0f0', S:'#f8f8ff' };
+const PAL_WINTER_B = { w:'#c8d8ec', S:'#ffffff' };
+const PAL_WINTER_C = { w:'#e0e8f8', S:'#a0c0e8' };
+
+const PAL_FOREST = { m:'#3a6020', M:'#205010', R:'#c83020', r:'#882010', S:'#f0e0b0' };
+const PAL_STONE  = { G:'#3a8020', s:'#888070', d:'#5a5040' };
+const PAL_SKY    = { N:'#0a0a30', S:'#f8f0a0' };
+const PAL_WOOD   = { w:'#8a5828', P:'#5a3010', p:'#a07040' };
+
+// ─── TILE CARD BUILDER ─────────────────────────────────────────────────
+function buildTileCard(gridId, label, rows, pal) {
+  const card = document.createElement('div');
+  card.className = 'tile-card';
+
+  // Tiled preview using data-url background
+  const preview = document.createElement('div');
+  preview.className = 'tile-preview';
+  const dataUrl = tileToDataUrl(rows, pal, 4); // tile is 64×64 px
+  preview.style.backgroundImage = `url(${dataUrl})`;
+  preview.style.backgroundRepeat = 'repeat';
+  preview.style.backgroundSize = '64px 64px';
+  card.appendChild(preview);
+
+  // Meta
+  const meta = document.createElement('div');
+  meta.className = 'tile-meta';
+  meta.innerHTML = `<b>${label}</b><br>16×16 tile · seamless`;
+  card.appendChild(meta);
+
+  // Controls — change scale / download
+  const controls = document.createElement('div');
+  controls.className = 'controls';
+  [['1×', 16],['2×', 32],['4×', 64],['8×',128]].forEach(([lbl, px]) => {
+    const b = document.createElement('button');
+    b.textContent = lbl;
+    b.onclick = () => {
+      preview.style.backgroundSize = `${px}px ${px}px`;
+    };
+    controls.appendChild(b);
+  });
+  const dl = document.createElement('button');
+  dl.textContent = '⬇ PNG';
+  dl.onclick = () => {
+    const cv = renderTile(rows, pal, 4);
+    const a = document.createElement('a');
+    a.href = cv.toDataURL();
+    a.download = label.replace(/\s+/g,'_') + '.png';
+    a.click();
+  };
+  controls.appendChild(dl);
+  card.appendChild(controls);
+
+  document.getElementById(gridId).appendChild(card);
+}
+
+// ─── BUILD ────────────────────────────────────────────────────────────
+buildTileCard('spring-grid','Pink Meadow',   T_SPRING_A, PAL_SPRING);
+buildTileCard('spring-grid','Wild Meadow',   T_SPRING_B, PAL_SPRING_B);
+buildTileCard('spring-grid','Sunny Meadow',  T_SPRING_A, PAL_SPRING_C);
+
+buildTileCard('summer-grid','Beach Sand',    T_SUMMER_A, PAL_SUMMER);
+buildTileCard('summer-grid','Pebble Sand',   T_SUMMER_B, PAL_SUMMER_B);
+buildTileCard('summer-grid','Pale Sand',     T_SUMMER_A, PAL_SUMMER_C);
+
+buildTileCard('autumn-grid','Brown Leaves',  T_AUTUMN_A, PAL_AUTUMN);
+buildTileCard('autumn-grid','Orange Leaves', T_AUTUMN_B, PAL_AUTUMN_B);
+buildTileCard('autumn-grid','Deep Forest',   T_AUTUMN_A, PAL_AUTUMN_C);
+
+buildTileCard('winter-grid','Snowflakes',    T_WINTER_A, PAL_WINTER);
+buildTileCard('winter-grid','Heavy Snow',    T_WINTER_B, PAL_WINTER_B);
+buildTileCard('winter-grid','Frozen Pond',   T_WINTER_A, PAL_WINTER_C);
+
+buildTileCard('extra-grid','Mushroom Floor', T_FOREST, PAL_FOREST);
+buildTileCard('extra-grid','Mossy Stone',    T_STONE,  PAL_STONE);
+buildTileCard('extra-grid','Starry Sky',     T_SKY,    PAL_SKY);
+buildTileCard('extra-grid','Wood Planks',    T_WOOD,   PAL_WOOD);
+</script>
+</body>
+</html>
